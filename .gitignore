@@ -3,3 +3,7 @@ python-bigquery/
 
 key-vlille.json
 cf_get_data_and_store_to_gcs/key-vlille.json
+cloud-function-allo.zip
+cloud-function-example.zip
+cloud-function-vlille-api-to-gcs-and-bigquery.zip
+cloud-function-vlille-api-to-gcs.zip
