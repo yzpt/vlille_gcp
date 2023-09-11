@@ -1,0 +1,5 @@
+venv/
+python-bigquery/
+
+key-vlille.json
+cf_get_data_and_store_to_gcs/key-vlille.json
