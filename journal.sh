@@ -226,7 +226,65 @@ gcloud functions deploy vlille_pubsub --region=europe-west1 --runtime=python311 
 
 # cli cmd to query bigquery
 
+# github cmd to create a repo
+git init
+git add .
+git commit -m "first commit"
+git branch -M main
+git remote add origin
+
+# git delete remote
+git remote rm origin
 
 
 
+# dataproc bucket --> bigquery ======================================
 
+# activation api dataproc
+gcloud services enable dataproc.googleapis.com --project=vlille-396911
+
+# création d'un cluster dataproc
+gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-2 --master-boot-disk-size 50 --num-workers 2 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
+
+# bucket GCS pour stocker le script spark
+gsutil mb -p vlille-396911 gs://vlille-spark-yzpt
+
+# job spark --> spark_gcs_to_bq.py
+
+# transfert du script spark sur le bucket
+gsutil cp spark_gcs_to_bq.py gs://vlille-spark-yzpt
+
+# lancement du job spark
+gcloud dataproc jobs submit pyspark gs://vlille-spark-yzpt/spark_gcs_to_bq.py --cluster cluster-dataproc-vlille --region us-east1 --project vlille-396911
+
+# erreur visiblement à cause du timestamp dans le nom des fichiers json
+
+# gcs create a bucket
+gsutil mb gs://vlille_data_json_copy
+
+# gcs copy a entire bucket to another bucket
+gsutil -m cp -r gs://vlille_data_json gs://vlille_data_json_copy
+
+# try avec un seul fichier au nom modifié :
+#  gs://vlille_data_json_copy/vlille_data_json/data___2023_08_25_03_34_00.json
+# job spark_gcs_to_bq.py > df = spark.read.json("gs://vlille_data_json_copy/vlille_data_json/data___2023_08_25_03_34_00.json")
+
+# transfert du script spark sur le bucket
+gsutil cp spark_gcs_to_bq.py gs://vlille-spark-yzpt
+
+# temp bucket needed pour spark job
+gsutil mb -l europe-west1 gs://yzpt-temp-bucket
+
+# lancement du job spark
+gcloud dataproc jobs submit pyspark gs://vlille-spark-yzpt/spark_gcs_to_bq.py --cluster cluster-dataproc-vlille --region us-east1 --project vlille-396911
+
+# ça marche, effectivement timestamp dans le nom fait chier
+
+# tâche secondaire : renommer l'ensemble des fichiers json dans le bucket gs://vlille_data_json en remplaçant les caractères spéciaux ":" du timestamp par des "_"
+# le nombre de fichier est trop grand pour utilser gsutil
+# --> dataflow
+
+# Dataflow ===================================================
+
+# activation api dataflow
+gcloud services enable dataflow.googleapis.com --project=vlille-396911
