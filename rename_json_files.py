@@ -23,3 +23,6 @@ for blob in blobs:
         print(f'Renamed: {old_name} -> {new_name}')
     else:
         print(f'No need to rename: {old_name}')
+
+# copy all the files in gs://vlille_data_json_copy/vlille_data_json/ to gs://vlille_data_json_copy/ (root of the bucket)
+# gsutil -m cp -r gs://vlille_data_json_copy/vlille_data_json/ gs://vlille_data_json_copy/
