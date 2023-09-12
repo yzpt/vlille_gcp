@@ -288,3 +288,18 @@ gcloud dataproc jobs submit pyspark gs://vlille-spark-yzpt/spark_gcs_to_bq.py --
 
 # activation api dataflow
 gcloud services enable dataflow.googleapis.com --project=vlille-396911
+
+# cli to create a new bucket
+gsutil mb gs://vlille_data_json_renamed
+
+# installer apache beam avec les dépandances pour gcp
+!pip install apache_beam[gcp]
+# Pourquoi ? le script est censé tourner sur gcp ...
+
+# job dataflow --> dataflow_rename_files.py
+# transfert du script sur le bucket allo_bucket_yzpt
+gsutil cp dataflow_rename_files.py gs://allo_bucket_yzpt
+# path : 
+gs://allo_bucket_yzpt/dataflow_rename_files.py
+
+# putain le gros bordel de dataflow
