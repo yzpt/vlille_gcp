@@ -303,3 +303,114 @@ gsutil cp dataflow_rename_files.py gs://allo_bucket_yzpt
 gs://allo_bucket_yzpt/dataflow_rename_files.py
 
 # putain le gros bordel de dataflow
+
+# suppression du cluster dataproc
+gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --project vlille-396911
+
+
+# try avec cloud functions =================================================
+
+
+# shell cmd to copy a fodler and is subfolders/files to the actual folder
+# avec googleapi python-storage client
+# https://github.com/googleapis/python-storage/tree/main/samples
+
+# storage_copy_file.py > copié/collé dans cloud function GUI avec requirements_venv2.txt
+
+# containerization avec docker
+# dir docker_storage_copy_files/
+#   Dockerfile
+#   requirements.txt
+#   storage_copy_file.py
+# docker build -t storage_copy_file .
+
+# le script fonctionne, à deployer maintenant sur GCP
+
+# set the permission artifactregistry administrator to the service account
+gcloud projects add-iam-policy-binding vlille-396911 --member="serviceAccount:vlille@vlille-396911.iam.gserviceaccount.com" --role="roles/artifactregistry.admin" --project=vlille-396911
+
+# gcloud cli to get all the permissions of a service account
+gcloud projects get-iam-policy vlille-396911 --flatten="bindings[].members" --format='table(bindings.role)'
+
+# push du container sur gcp
+# création d'un repo sur artifact registry
+gcloud artifacts repositories create gcs-copy --repository-format=docker --location=europe-west9 --project=vlille-396911
+# build
+docker build -t europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file .
+docker build -t europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/docker_hello_test .
+# authentification
+gcloud auth configure-docker europe-west9-docker.pkg.dev
+# push
+docker push europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file
+docker push europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/docker_hello_test
+
+# steps to run the container on compute engine:
+# cli cmd to create a compute engine instance:
+gcloud compute instances create-with-container instance-1 --container-image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file --zone europe-west1-b --project vlille-396911
+gcloud compute instances create-with-container instance-2 --container-image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/docker_hello_test --zone europe-west1-b --project vlille-396911
+
+# get the logs of the docker container running on the vm
+# shh into the instance
+gcloud compute ssh instance-2 --zone europe-west1-b --project vlille-396911
+# docker list containers
+docker ps -a
+# logs
+docker logs <id_instance>
+
+# shh into the instance
+gcloud compute ssh instance-1 --zone europe-west1-b --project vlille-396911
+# docker list containers
+docker ps -a
+# logs
+docker logs instance-1
+# ça a bien transféré tous les fichiers mais on dirait que la vm restart et veut relancer le script
+# cependant c'est bloqué à cause du conflit :
+# ---
+# Blob data___2023-09-14_18:47:00.json has been copied to data___2023_09_14_18_47_00.json in bucket test_copy_vlille_yzpt
+# Blob data___2023-09-14_18:48:00.json has been copied to data___2023_09_14_18_48_00.json in bucket test_copy_vlille_yzpt
+# Bucket does not exist
+# Bucket already exists
+# 30345  files to copy
+# Traceback (most recent call last):
+#   File "/app/storage_copy_file.py", line 95, in <module>
+#     copy_all_files('vlille_data_json', 'test_copy_vlille_yzpt')
+#   File "/app/storage_copy_file.py", line 69, in copy_all_files
+#     copy_blob(bucket_name=bucket_name, blob_name=blob.name, destination_bucket_name=destination_bucket_name, destination_blob_name=new_name)
+#   File "/app/storage_copy_file.py", line 48, in copy_blob
+#     blob_copy = source_bucket.copy_blob(
+#   File "/usr/local/lib/python3.10/site-packages/google/cloud/storage/bucket.py", line 1903, in copy_blob
+#     copy_result = client._post_resource(
+#   File "/usr/local/lib/python3.10/site-packages/google/cloud/storage/client.py", line 625, in _post_resource
+#     return self._connection.api_request(
+#   File "/usr/local/lib/python3.10/site-packages/google/cloud/storage/_http.py", line 72, in api_request
+#     return call()
+#   File "/usr/local/lib/python3.10/site-packages/google/api_core/retry.py", line 349, in retry_wrapped_func
+#     return retry_target(
+#   File "/usr/local/lib/python3.10/site-packages/google/api_core/retry.py", line 191, in retry_target
+#     return target()
+#   File "/usr/local/lib/python3.10/site-packages/google/cloud/_http/__init__.py", line 494, in api_request
+#     raise exceptions.from_http_response(response)
+# google.api_core.exceptions.PreconditionFailed: 412 POST https://storage.googleapis.com/storage/v1/b/vlille_data_json/o/data___2023-08-24_19%3A54%3A00.json/copyTo/b/test_copy_vlille_yzpt/o/data___2023_08_24_19_54_00.json?ifGenerationMatch=0&prettyPrint=false: At least one of the pre-conditions you specified did not hold.
+# Bucket does not exist
+# Bucket already exists
+# 30345  files to copy
+# Traceback (most recent call last):...
+# --------------------------------------------
+
+# cli gce stop instance
+gcloud compute instances stop instance-1 --zone europe-west1-b --project vlille-396911
+# delete instance, auto-confirmation
+gcloud compute instances delete instance-1 --zone europe-west1-b --project vlille-396911 -q
+gcloud compute instances delete instance-hello --zone europe-west1-b --project vlille-396911 -q
+
+# docker_hello_test -> même problème
+# logs: --------------------------------------------
+# zapart_mslp@instance-1 ~ $ docker logs 24aea91d6700
+# allo 2023-09-14 21:27:13.194600
+# allo 2023-09-14 21:27:13.647225
+# allo 2023-09-14 21:27:14.194907
+# allo 2023-09-14 21:27:14.918801
+# --------------------------------------------------
+
+# create instance with container, stop the vm after the script is finished:
+gcloud compute instances create-with-container instance-1 --container-image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/docker_hello_test --zone europe-west1-b --project vlille-396911 --preemptible
