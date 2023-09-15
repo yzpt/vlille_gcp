@@ -1,0 +1,149 @@
+why my script with the code below in a docker container runing on gcp compute engine seems to be restarted after finished the job (see logs) ?
+
+script code (storage_copy_file.py) :
+#!/usr/bin/env python
+
+# Copyright 2019 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import sys
+import os
+# [START storage_copy_file]
+from google.cloud import storage
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
+
+def copy_blob(
+    bucket_name, blob_name, destination_bucket_name, destination_blob_name,
+):
+    """Copies a blob from one bucket to another with a new name."""
+    # bucket_name = "your-bucket-name"
+    # blob_name = "your-object-name"
+    # destination_bucket_name = "destination-bucket-name"
+    # destination_blob_name = "destination-object-name"
+
+    storage_client = storage.Client()
+
+    source_bucket = storage_client.bucket(bucket_name)
+    source_blob = source_bucket.blob(blob_name)
+    destination_bucket = storage_client.bucket(destination_bucket_name)
+
+    # Optional: set a generation-match precondition to avoid potential race conditions
+    # and data corruptions. The request to copy is aborted if the object's
+    # generation number does not match your precondition. For a destination
+    # object that does not yet exist, set the if_generation_match precondition to 0.
+    # If the destination object already exists in your bucket, set instead a
+    # generation-match precondition using its generation number.
+    # There is also an `if_source_generation_match` parameter, which is not used in this example.
+    destination_generation_match_precondition = 0
+
+    blob_copy = source_bucket.copy_blob(
+        source_blob, destination_bucket, destination_blob_name, if_generation_match=destination_generation_match_precondition,
+    )
+
+    # print(
+    #     "Blob {} in bucket {} copied to blob {} in bucket {}.".format(
+    #         source_blob.name,
+    #         source_bucket.name,
+    #         blob_copy.name,
+    #         destination_bucket.name,
+    #     )
+    # )
+
+# function that loop all the files in a bucket and rename them in a new bucket using copy_blob
+def copy_all_files(bucket_name, destination_bucket_name):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blobs = list(bucket.list_blobs())
+    print(len(list(blobs)), ' files to copy')
+    for i,blob in enumerate(blobs):
+        new_name = blob.name.replace(":","_").replace("-","_")
+        copy_blob(bucket_name=bucket_name, blob_name=blob.name, destination_bucket_name=destination_bucket_name, destination_blob_name=new_name)
+        print(f"Blob {blob.name} has been copied to {new_name} in bucket {destination_bucket_name}")
+
+def create_new_bucket(bucket_name):
+    storage_client = storage.Client()
+    bucket = storage_client.create_bucket(bucket_name)
+    print("Bucket {} created".format(bucket.name))
+
+def delete_bucket(bucket_name):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    bucket.delete()
+    print("Bucket {} deleted".format(bucket.name))
+
+if __name__ == "__main__":
+
+    try:
+        delete_bucket('test_copy_vlille_yzpt')
+    except:
+        print("Bucket does not exist")
+    
+    try:
+        create_new_bucket('test_copy_vlille_yzpt')
+    except:
+        print("Bucket already exists")
+        
+    copy_all_files('vlille_data_json', 'test_copy_vlille_yzpt')
+
+Dockerfile:
+# Use an official Python runtime as a parent image
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY . /app
+
+
+# Install any needed packages specified in requirements.txt
+RUN pip3 install -r requirements.txt
+
+# Make port 80 available to the world outside this container
+EXPOSE 80
+
+# Run your script when the container launches
+CMD ["python", "storage_copy_file.py"]
+
+
+
+logs :
+Blob data___2023-09-14_18:47:00.json has been copied to data___2023_09_14_18_47_00.json in bucket test_copy_vlille_yzpt
+Blob data___2023-09-14_18:48:00.json has been copied to data___2023_09_14_18_48_00.json in bucket test_copy_vlille_yzpt
+Bucket does not exist
+Bucket already exists
+30345  files to copy
+Traceback (most recent call last):
+  File "/app/storage_copy_file.py", line 95, in <module>
+    copy_all_files('vlille_data_json', 'test_copy_vlille_yzpt')
+  File "/app/storage_copy_file.py", line 69, in copy_all_files
+    copy_blob(bucket_name=bucket_name, blob_name=blob.name, destination_bucket_name=destination_bucket_name, destination_blob_name=new_name)
+  File "/app/storage_copy_file.py", line 48, in copy_blob
+    blob_copy = source_bucket.copy_blob(
+  File "/usr/local/lib/python3.10/site-packages/google/cloud/storage/bucket.py", line 1903, in copy_blob
+    copy_result = client._post_resource(
+  File "/usr/local/lib/python3.10/site-packages/google/cloud/storage/client.py", line 625, in _post_resource
+    return self._connection.api_request(
+  File "/usr/local/lib/python3.10/site-packages/google/cloud/storage/_http.py", line 72, in api_request
+    return call()
+  File "/usr/local/lib/python3.10/site-packages/google/api_core/retry.py", line 349, in retry_wrapped_func
+    return retry_target(
+  File "/usr/local/lib/python3.10/site-packages/google/api_core/retry.py", line 191, in retry_target
+    return target()
+  File "/usr/local/lib/python3.10/site-packages/google/cloud/_http/__init__.py", line 494, in api_request
+    raise exceptions.from_http_response(response)
+google.api_core.exceptions.PreconditionFailed: 412 POST https://storage.googleapis.com/storage/v1/b/vlille_data_json/o/data___2023-08-24_19%3A54%3A00.json/copyTo/b/test_copy_vlille_yzpt/o/data___2023_08_24_19_54_00.json?ifGenerationMatch=0&prettyPrint=false: At least one of the pre-conditions you specified did not hold.
+Bucket does not exist
+Bucket already exists
+30345  files to copy
+Traceback (most recent call last):...

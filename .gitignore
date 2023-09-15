@@ -8,5 +8,10 @@ venv_2/
 key-vlille.json
 cf_get_data_and_store_to_gcs/key-vlille.json
 docker_storage_copy_files/key-vlille.json
-requirements.txt
+
+
+
+./requirements.txt
+./requirements_va.txt
 requirements_va.txt
+requirements_venv2.txt

@@ -347,11 +347,20 @@ docker push europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/docker_hello_test
 # steps to run the container on compute engine:
 # cli cmd to create a compute engine instance:
 gcloud compute instances create-with-container instance-1 --container-image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file --zone europe-west1-b --project vlille-396911
-gcloud compute instances create-with-container instance-2 --container-image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/docker_hello_test --zone europe-west1-b --project vlille-396911
+gcloud compute instances create-with-container instance-3 --container-image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/docker_hello_test --zone europe-west1-b --project vlille-396911
+
+# delete instance
+gcloud compute instances delete instance-hello --zone europe-west1-b --project vlille-396911 -q
+gcloud compute instances delete instance-1 --zone europe-west1-b --project vlille-396911 -q
+gcloud compute instances delete instance-3 --zone europe-west1-b --project vlille-396911 -q
+
+
+# gcloud comute ls instances
+gcloud compute instances list --project vlille-396911
 
 # get the logs of the docker container running on the vm
 # shh into the instance
-gcloud compute ssh instance-2 --zone europe-west1-b --project vlille-396911
+gcloud compute ssh instance-1 --zone europe-west1-b --project vlille-396911
 # docker list containers
 docker ps -a
 # logs
@@ -400,7 +409,7 @@ docker logs instance-1
 # cli gce stop instance
 gcloud compute instances stop instance-1 --zone europe-west1-b --project vlille-396911
 # delete instance, auto-confirmation
-gcloud compute instances delete instance-1 --zone europe-west1-b --project vlille-396911 -q
+gcloud compute instances delete instance-3 --zone europe-west1-b --project vlille-396911 -q
 gcloud compute instances delete instance-hello --zone europe-west1-b --project vlille-396911 -q
 
 # docker_hello_test -> même problème
@@ -412,5 +421,42 @@ gcloud compute instances delete instance-hello --zone europe-west1-b --project v
 # allo 2023-09-14 21:27:14.918801
 # --------------------------------------------------
 
-# create instance with container, stop the vm after the script is finished:
-gcloud compute instances create-with-container instance-1 --container-image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/docker_hello_test --zone europe-west1-b --project vlille-396911 --preemptible
+
+
+# jeudi 15 sept =====================================================
+# on essaye avec cloud run ==========================================
+
+# steps to run a docker container on cloud run:
+# 1. build the container
+docker build -t europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/job_load_file_on_gcs .
+# test run the container
+docker run -it europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/job_load_file_on_gcs
+
+# 2. push the container on artifact registry
+docker push europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/job_load_file_on_gcs
+
+# 3. deploy the container on cloud run:
+#   - create a service account with the permission cloud run admin:
+        gcloud projects add-iam-policy-binding vlille-396911 --member="serviceAccount:vlille@vlille-396911.iam.gserviceaccount.com" --role="roles/run.admin" --project=vlille-396911
+#   - create a service account with the permission cloud run invoker:
+        gcloud projects add-iam-policy-binding vlille-396911 --member="serviceAccount:vlille@vlille-396911.iam.gserviceaccount.com" --role="roles/run.invoker" --project=vlille-396911
+#   - deploy the container on cloud run
+    gcloud run deploy job-load-file-on-gcs --image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/job_load_file_on_gcs --platform managed --region europe-west1 --project vlille-396911 --allow-unauthenticated
+
+# pb --> bordel avec port8080 à écouter etc
+# try avec flask :
+#   - main.py > app.py
+#      to run the script once :
+        # if __name__ == '__main__':
+            # functions to run ...
+            # sys.exit()
+#   - requirements.txt
+#   - Dockerfile
+docker build -t europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/load_file_flask .
+docker run -it europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/load_file_flask
+docker push europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/load_file_flask
+
+gcloud run deploy load-file-flask --image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/load_file_flask --platform managed --region europe-west1 --project vlille-396911 --allow-unauthenticated
+
+# ok --> new file on the bucket on each request
+
