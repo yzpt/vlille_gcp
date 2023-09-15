@@ -460,3 +460,25 @@ gcloud run deploy load-file-flask --image europe-west9-docker.pkg.dev/vlille-396
 
 # ok --> new file on the bucket on each request
 
+
+# gcloud dataproc to load the json files on bigquery ==================
+# création d'un cluster dataproc
+gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-2 --master-boot-disk-size 50 --num-workers 2 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
+
+# job spark --> spark_gcs_to_bq.py
+# transfert du script spark sur le bucket
+gsutil cp spark_gcs_to_bq.py gs://allo_bucket_yzpt
+
+gcloud dataproc jobs submit pyspark gs://allo_bucket_yzpt/spark_gcs_to_bq.py --cluster cluster-dataproc-vlille --region us-east1 --project vlille-396911 
+# erreur : pb de mémoire
+# : org.apache.spark.SparkException: Job aborted due to stage failure: Total size of serialized results of 7 tasks (969.7 MiB) is bigger than spark.driver.maxResultSize (960.0 MiB)
+
+# delete the cluster
+gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --project vlille-396911 -q
+
+# c'était hyper long pour faire seulement 1000 fichiers
+# try with powerfull cluster
+# création d'un cluster dataproc avec 7 workers
+gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-4 --master-boot-disk-size 50 --num-workers 7 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
+# lancemant du job spark
+# ...

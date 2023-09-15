@@ -62,7 +62,7 @@ def copy_blob(
 def copy_all_files(bucket_name, destination_bucket_name):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
-    blobs = list(bucket.list_blobs())
+    blobs = list(bucket.list_blobs())[:100]
     print(len(list(blobs)), ' files to copy')
     for i,blob in enumerate(blobs):
         new_name = blob.name.replace(":","_").replace("-","_")
@@ -81,15 +81,6 @@ def delete_bucket(bucket_name):
     print("Bucket {} deleted".format(bucket.name))
 
 if __name__ == "__main__":
-
-    try:
-        delete_bucket('test_copy_vlille_yzpt')
-    except:
-        print("Bucket does not exist")
-    
-    try:
-        create_new_bucket('test_copy_vlille_yzpt')
-    except:
-        print("Bucket already exists")
-        
-    copy_all_files('vlille_data_json', 'test_copy_vlille_yzpt')
+  
+    create_new_bucket('vlille_sample_data_yzpt')
+    copy_all_files('vlille_data_json', 'vlille_sample_data_yzpt')
