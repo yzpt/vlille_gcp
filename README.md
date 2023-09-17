@@ -72,12 +72,12 @@ bq mk --table vlille_dataset.vlille_table \
 
 #### 2.1. Contenu et transfert des fichiers de la fonction
 
- Le dossier <a href="cf_get_data_and_store_to_gcs">cf_get_data_and_store_to_gcs/</a> contient les fichiers suivants :
+cf_get_data_and_store_to_gcs/<br>
+├── key-vlille.json<br>
+├── requirements.txt<br>
+└── main.py
 
-* requirements.txt : dépendances
-* key-vlille.json : clé de service account
-* main.py : script de de la fonction
-
+* main.py
   ```python
   import base64
   from datetime import datetime
@@ -219,4 +219,60 @@ gcloud scheduler jobs create pubsub cf-vlille-minute --schedule="* * * * *" --to
   # Création d'une fonction cloud qui trigge sur le topic Pub/Sub cloud-function-trigger-vlille
   gcloud functions deploy allo --region=europe-west1 --runtime=python311 --trigger-topic=cloud-function-trigger-vlille --source=gs://fct_yzpt/cloud-function-vlille.zip --entry-point=vlille_pubsub
   ```
+
+## 3. Docker Container + Compute Engine
+
+Transfert et modification du nom des fichiers json collectés.
+
+#### 3.1. Build du Docker Container
+
+docker_storage_copy_files/<br>
+├── Dockerfile<br>
+├── requirements.txt<br>
+└── storage_copy_file.py
+
+    ```python
+    import sys
+import os
+from google.cloud import storage
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
+
+def copy_blob(bucket_name, blob_name, destination_bucket_name, destination_blob_name):
+    storage_client = storage.Client()
+
+    source_bucket = storage_client.bucket(bucket_name)
+    source_blob = source_bucket.blob(blob_name)
+    
+    destination_bucket = storage_client.bucket(destination_bucket_name)
+    destination_generation_match_precondition = 0
+
+    source_bucket.copy_blob(source_blob, destination_bucket, destination_blob_name, if_generation_match=destination_generation_match_precondition)
+
+def copy_all_files(bucket_name, destination_bucket_name):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blobs = list(bucket.list_blobs())[:100]
+    print(len(list(blobs)), ' files to copy')
+    for i,blob in enumerate(blobs):
+        new_name = blob.name.replace(":","_").replace("-","_")
+        copy_blob(bucket_name=bucket_name, blob_name=blob.name, destination_bucket_name=destination_bucket_name, destination_blob_name=new_name)
+        print(f"Blob {blob.name} has been copied to {new_name} in bucket {destination_bucket_name}")
+
+def create_new_bucket(bucket_name):
+    storage_client = storage.Client()
+    bucket = storage_client.create_bucket(bucket_name)
+    print("Bucket {} created".format(bucket.name))
+
+def delete_bucket(bucket_name):
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    bucket.delete()
+    print("Bucket {} deleted".format(bucket.name))
+
+if __name__ == "__main__":
+    create_new_bucket('vlille_sample_data_yzpt')
+    copy_all_files('vlille_data_json', 'vlille_sample_data_yzpt')
+
+    ```
 
