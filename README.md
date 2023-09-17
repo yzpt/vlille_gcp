@@ -229,18 +229,23 @@ Transfert et modification du nom des fichiers json collectés.
 docker_storage_copy_files/<br>
 ├── Dockerfile<br>
 ├── requirements.txt<br>
+├── key-vlille.json<br>
 └── storage_copy_file.py
 
-    ```python
-    import sys
+<details>
+  <summary>storage_copy_file.py</summary>
+
+```python
+import sys
 import os
 from google.cloud import storage
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
 
-def copy_blob(bucket_name, blob_name, destination_bucket_name, destination_blob_name):
-    storage_client = storage.Client()
+# Initialize the storage client once at the beginning
+storage_client = storage.Client()
 
+def copy_blob(storage_client, bucket_name, blob_name, destination_bucket_name, destination_blob_name):
     source_bucket = storage_client.bucket(bucket_name)
     source_blob = source_bucket.blob(blob_name)
     
@@ -249,30 +254,53 @@ def copy_blob(bucket_name, blob_name, destination_bucket_name, destination_blob_
 
     source_bucket.copy_blob(source_blob, destination_bucket, destination_blob_name, if_generation_match=destination_generation_match_precondition)
 
-def copy_all_files(bucket_name, destination_bucket_name):
-    storage_client = storage.Client()
+def copy_all_files(storage_client, bucket_name, destination_bucket_name):
     bucket = storage_client.bucket(bucket_name)
     blobs = list(bucket.list_blobs())[:100]
     print(len(list(blobs)), ' files to copy')
-    for i,blob in enumerate(blobs):
-        new_name = blob.name.replace(":","_").replace("-","_")
-        copy_blob(bucket_name=bucket_name, blob_name=blob.name, destination_bucket_name=destination_bucket_name, destination_blob_name=new_name)
+    for i, blob in enumerate(blobs):
+        new_name = blob.name.replace(":", "_").replace("-", "_")
+        copy_blob(storage_client, bucket_name=bucket_name, blob_name=blob.name, destination_bucket_name=destination_bucket_name, destination_blob_name=new_name)
         print(f"Blob {blob.name} has been copied to {new_name} in bucket {destination_bucket_name}")
 
-def create_new_bucket(bucket_name):
-    storage_client = storage.Client()
+def create_new_bucket(storage_client, bucket_name):
     bucket = storage_client.create_bucket(bucket_name)
     print("Bucket {} created".format(bucket.name))
 
-def delete_bucket(bucket_name):
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    bucket.delete()
-    print("Bucket {} deleted".format(bucket.name))
-
 if __name__ == "__main__":
-    create_new_bucket('vlille_sample_data_yzpt')
-    copy_all_files('vlille_data_json', 'vlille_sample_data_yzpt')
+    create_new_bucket(storage_client, 'vlille_sample_data_yzpt')
+    copy_all_files(storage_client, 'vlille_data_json', 'vlille_sample_data_yzpt')
 
-    ```
+```
+</details>  <br>
+
+```sh
+# build du container Docker
+docker build -t europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file .
+```	
+
+#### 3.2. Push du Docker Container sur Artifact Registry
+
+```sh	
+# Définir les autorisations d'administrateur de l'Artifact Registry pour le compte de service
+gcloud projects add-iam-policy-binding vlille-396911 --member="serviceAccount:vlille@vlille-396911.iam.gserviceaccount.com" --role="roles/artifactregistry.admin" --project=vlille-396911
+
+# création d'un dépôt sur Artifact Registry
+gcloud artifacts repositories create gcs-copy --repository-format=docker --location=europe-west9 --project=vlille-396911
+
+# Authentification Docker/GCP
+gcloud auth configure-docker europe-west9-docker.pkg.dev
+
+# Push Docker --> GCP Artifact Registry
+docker push europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file
+```
+
+#### 3.3. Création d'une instance Compute Engine et exécution du Docker Container
+
+```sh
+gcloud compute instances create-with-container instance-1 \
+  --container-image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file \
+  --zone europe-west1-b \
+  --project vlille-396911
+```
 
