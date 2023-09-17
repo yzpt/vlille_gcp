@@ -1,11 +1,9 @@
 import base64
 from datetime import datetime
-import pandas as pd
 from google.cloud import storage
 from google.cloud import bigquery
 import requests
 import json
-import time
 import pytz
 import os
 

@@ -482,3 +482,12 @@ gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --proj
 gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-4 --master-boot-disk-size 50 --num-workers 7 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
 # lancemant du job spark
 # ...
+
+
+
+# cloud composer ================================
+# activation api cloud composer
+gcloud services enable composer.googleapis.com --project=vlille-396911
+
+# création d'un bucket pour cloud composer
+gsutil mb gs://composer_bucket_yzpt
