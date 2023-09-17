@@ -62,8 +62,7 @@ gcloud services enable pubsub.googleapis.com
 
 <!-- blue color in markdown: -->
 
-<details>
-  <summary><pan style='color: cyan'>Code du fichier main.py</spans></summary>
+<span style='color: cyan'>Code du fichier main.py</span>
   
 ```python
 import base64
@@ -160,8 +159,6 @@ if __name__ == "__main__":
     vlille_pubsub('data', 'context')
 
 ```
-
-<br></details>
 
 Zip du dossier et transfert sur un bucket GCS :
 
