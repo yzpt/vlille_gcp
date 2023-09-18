@@ -9,7 +9,6 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
 
 app = Flask(__name__)
 
-# storage function upload a file
 def upload_blob(bucket_name, source_file_name, destination_blob_name):
     """Uploads a file to the bucket."""
     try:

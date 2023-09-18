@@ -1,16 +1,10 @@
 # V'lille GCP
 
-## Titre 2
-
-### Titre 3
-
 Collecte des données de l'<a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom">API V'lille (Disponibilité en temps réel des stations)</a>, stockage et traitement sur GCP : Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker
 
 ## 1. Configuration GCP
 
-### 1. Création du projet
-
-Créer un projet sur GCP après s'être authentifié.
+Créer un projet sur GCP après s'être authentifié sur google DSK cli
 
 ```sh 
 # Création d'un nouveau projet gcloud
@@ -70,7 +64,7 @@ bq mk --table vlille_dataset.vlille_table \
   ...
 ```
 
-#### 2.1. Contenu et transfert des fichiers de la fonction
+### 2.1. Cloud Function : contenu et transfert du script
 
 cf_get_data_and_store_to_gcs/<br>
 ├── key-vlille.json<br>
@@ -78,101 +72,102 @@ cf_get_data_and_store_to_gcs/<br>
 └── main.py
 
 * main.py
-  ```python
-  import base64
-  from datetime import datetime
-  from google.cloud import storage
-  from google.cloud import bigquery
-  import requests
-  import json
-  import pytz
-  import os
 
-  os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
-  url = 'https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&q=&rows=300&timezone=Europe%2FParis'
-  paris_tz = pytz.timezone('Europe/Paris')
-  str_time_paris = datetime.now(paris_tz).strftime('%Y-%m-%d_%H:%M:%S')
+```python
+import base64
+from datetime import datetime
+from google.cloud import storage
+from google.cloud import bigquery
+import requests
+import json
+import pytz
+import os
 
-  # Define variables for Cloud Functions
-  bucket_name = 'vlille_data_json'
-  project_name = 'vlille-396911'
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
+url = 'https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&q=&rows=300&timezone=Europe%2FParis'
+paris_tz = pytz.timezone('Europe/Paris')
+str_time_paris = datetime.now(paris_tz).strftime('%Y-%m-%d_%H:%M:%S')
 
-  def get_json_data(url):
-      # extract data from API
-      response = requests.get(url)
-      return response.json()
+# Define variables for Cloud Functions
+bucket_name = 'vlille_data_json'
+project_name = 'vlille-396911'
 
-  def store_data_json_to_gcs_bucket(data, bucket_name, str_time_paris):
-      # store data to GCS bucket
-      storage_client = storage.Client()
-      bucket = storage_client.bucket(bucket_name)
+def get_json_data(url):
+    # extract data from API
+    response = requests.get(url)
+    return response.json()
 
-      # Replace with the desired object name
-      object_name = "data___" + str_time_paris + ".json"
-      blob = bucket.blob(object_name)
+def store_data_json_to_gcs_bucket(data, bucket_name, str_time_paris):
+    # store data to GCS bucket
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
 
-      # Convert data to JSON string and upload to GCS
-      json_data = json.dumps(data)
-      blob.upload_from_string(json_data)
+    # Replace with the desired object name
+    object_name = "data___" + str_time_paris + ".json"
+    blob = bucket.blob(object_name)
 
-
-  def insert_data_json_to_bigquery(data):
-      client = bigquery.Client(project=project_name)
-      dataset_id = 'vlille_dataset'
-      table_id = 'vlille_table'
-      table_ref = client.dataset(dataset_id).table(table_id)
-      table = client.get_table(table_ref)  # API call
-
-      data_to_insert = []
-      for record in data['records']:
-          row = {
-              "recordid": record['recordid'],
-              "record_timestamp": record['record_timestamp'],
-              "nbvelosdispo": record['fields']['nbvelosdispo'],
-              "nbplacesdispo": record['fields']['nbplacesdispo'],
-              "libelle": record['fields']['libelle'],
-              "adresse": record['fields']['adresse'],
-              "nom": record['fields']['nom'],
-              "etat": record['fields']['etat'],
-              "commune": record['fields']['commune'],
-              "etatconnexion": record['fields']['etatconnexion'],
-              "type": record['fields']['type'],
-              "longitude": record['fields']['localisation'][0],
-              "latitude": record['fields']['localisation'][1],
-              "datemiseajour": record['fields']['datemiseajour']
-          }
-          data_to_insert.append(row)
-      client.insert_rows(table, data_to_insert)
+    # Convert data to JSON string and upload to GCS
+    json_data = json.dumps(data)
+    blob.upload_from_string(json_data)
 
 
-  def vlille_pubsub(event, context):
-      pubsub_message = base64.b64decode(event['data']).decode('utf-8')
-      print(pubsub_message)
-      str_time_paris = datetime.now(paris_tz).strftime('%Y-%m-%d_%H:%M:%S')
-      
-      try:
-          json_data = get_json_data(url)
-          print("Data extracted from API")
-      except Exception as e:
-          print(e)
-      
-      try:
-          store_data_json_to_gcs_bucket(json_data, bucket_name, str_time_paris)
-          print("File uploaded to gs://" +  bucket_name + "/{}.".format("data___" + str_time_paris + ".json"))
-      except Exception as e:
-          print(e)
+def insert_data_json_to_bigquery(data):
+    client = bigquery.Client(project=project_name)
+    dataset_id = 'vlille_dataset'
+    table_id = 'vlille_table'
+    table_ref = client.dataset(dataset_id).table(table_id)
+    table = client.get_table(table_ref)  # API call
 
-      try:
-          insert_data_json_to_bigquery(json_data)
-          print("Data inserted into BigQuery")
-      except Exception as e:
-          print(e)
+    data_to_insert = []
+    for record in data['records']:
+        row = {
+            "recordid": record['recordid'],
+            "record_timestamp": record['record_timestamp'],
+            "nbvelosdispo": record['fields']['nbvelosdispo'],
+            "nbplacesdispo": record['fields']['nbplacesdispo'],
+            "libelle": record['fields']['libelle'],
+            "adresse": record['fields']['adresse'],
+            "nom": record['fields']['nom'],
+            "etat": record['fields']['etat'],
+            "commune": record['fields']['commune'],
+            "etatconnexion": record['fields']['etatconnexion'],
+            "type": record['fields']['type'],
+            "longitude": record['fields']['localisation'][0],
+            "latitude": record['fields']['localisation'][1],
+            "datemiseajour": record['fields']['datemiseajour']
+        }
+        data_to_insert.append(row)
+    client.insert_rows(table, data_to_insert)
 
 
-  if __name__ == "__main__":
-      vlille_pubsub('data', 'context')
+def vlille_pubsub(event, context):
+    pubsub_message = base64.b64decode(event['data']).decode('utf-8')
+    print(pubsub_message)
+    str_time_paris = datetime.now(paris_tz).strftime('%Y-%m-%d_%H:%M:%S')
+    
+    try:
+        json_data = get_json_data(url)
+        print("Data extracted from API")
+    except Exception as e:
+        print(e)
+    
+    try:
+        store_data_json_to_gcs_bucket(json_data, bucket_name, str_time_paris)
+        print("File uploaded to gs://" +  bucket_name + "/{}.".format("data___" + str_time_paris + ".json"))
+    except Exception as e:
+        print(e)
 
-  ```
+    try:
+        insert_data_json_to_bigquery(json_data)
+        print("Data inserted into BigQuery")
+    except Exception as e:
+        print(e)
+
+
+if __name__ == "__main__":
+    vlille_pubsub('data', 'context')
+
+```
 
 Zip du dossier et transfert sur un bucket GCS :
 
@@ -186,17 +181,17 @@ gcloud storage buckets create gs://fct_yzpt
 gsutil cp cloud-function-vlille.zip gs://fct_yzpt
 ```
 
-#### 2.2. Création d'un topic Pub/Sub
+### 2.2. Topic Pub/Sub
 
 ```sh
 # Création d'un topic Pub/Sub cloud-function-trigger-vlille
 gcloud pubsub topics create cloud-function-trigger-vlille
 ```
 
-#### 2.3. Création d'un job scheduler
+### 2.3. Job scheduler
   
   ```sh
-  # Création d'un job scheduler qui envoie un message au topic Pub/Sub cloud-function-trigger-vlille toutes les minutes
+  # Création d'un job scheduler qui envoie un message au topic Pub/Sub cloud-function-trigger-vlille chaque minute
 gcloud scheduler jobs create pubsub cf-vlille-minute --schedule="* * * * *" --topic=cloud-function-trigger-vlille --message-body="{Message du scheduler pubsub cf-vlille-minute}" --time-zone="Europe/Paris" --location=europe-west1 --description="Scheduler toutes les minutes" 
 
   # Déclencher manuellement le job scheduler
@@ -213,64 +208,63 @@ gcloud scheduler jobs create pubsub cf-vlille-minute --schedule="* * * * *" --to
 
   ```
 
-#### 2.5. Déploiement de la fonction
+### 2.5. Déploiement Cloud Functions
   
   ```sh
   # Création d'une fonction cloud qui trigge sur le topic Pub/Sub cloud-function-trigger-vlille
   gcloud functions deploy allo --region=europe-west1 --runtime=python311 --trigger-topic=cloud-function-trigger-vlille --source=gs://fct_yzpt/cloud-function-vlille.zip --entry-point=vlille_pubsub
   ```
 
-## 3. Docker Container + Compute Engine
+## 3. Docker Container + Cloud Run
 
 Transfert et modification du nom des fichiers json collectés.
 
-#### 3.1. Build du Docker Container
+### 3.1. Build du Docker Container
 
-docker_storage_copy_files/<br>
+job_load_file_on_gcs/<br>
 ├── Dockerfile<br>
 ├── requirements.txt<br>
 ├── key-vlille.json<br>
-└── storage_copy_file.py
+└── app.py
 
 <details>
-  <summary>storage_copy_file.py</summary>
+  <summary>app.py</summary>
 
 ```python
 import sys
 import os
 from google.cloud import storage
+from datetime import datetime
+import pytz
+from flask import Flask
 
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
 
-# Initialize the storage client once at the beginning
-storage_client = storage.Client()
+app = Flask(__name__)
 
-def copy_blob(storage_client, bucket_name, blob_name, destination_bucket_name, destination_blob_name):
-    source_bucket = storage_client.bucket(bucket_name)
-    source_blob = source_bucket.blob(blob_name)
-    
-    destination_bucket = storage_client.bucket(destination_bucket_name)
-    destination_generation_match_precondition = 0
+def upload_blob(bucket_name, source_file_name, destination_blob_name):
+    """Uploads a file to the bucket."""
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(destination_blob_name)
+        blob.upload_from_filename(source_file_name)
+        print(f"File {source_file_name} uploaded to {destination_blob_name} in bucket {bucket_name}")
+    except Exception as e:
+        print(e)
 
-    source_bucket.copy_blob(source_blob, destination_bucket, destination_blob_name, if_generation_match=destination_generation_match_precondition)
+@app.route('/')
+def upload_file():
+    bucket_name             = "allo_bucket_yzpt"
+    source_file_name        = "file_to_load.txt"
+    destination_blob_name   = "loaded_file_" + datetime.now(pytz.timezone('Europe/Paris')).strftime("%Y%m%d_%H%M%S") + ".txt" 
 
-def copy_all_files(storage_client, bucket_name, destination_bucket_name):
-    bucket = storage_client.bucket(bucket_name)
-    blobs = list(bucket.list_blobs())[:100]
-    print(len(list(blobs)), ' files to copy')
-    for i, blob in enumerate(blobs):
-        new_name = blob.name.replace(":", "_").replace("-", "_")
-        copy_blob(storage_client, bucket_name=bucket_name, blob_name=blob.name, destination_bucket_name=destination_bucket_name, destination_blob_name=new_name)
-        print(f"Blob {blob.name} has been copied to {new_name} in bucket {destination_bucket_name}")
-
-def create_new_bucket(storage_client, bucket_name):
-    bucket = storage_client.create_bucket(bucket_name)
-    print("Bucket {} created".format(bucket.name))
+    upload_blob(bucket_name, source_file_name, destination_blob_name)
+    return "File upload complete: " + destination_blob_name
 
 if __name__ == "__main__":
-    create_new_bucket(storage_client, 'vlille_sample_data_yzpt')
-    copy_all_files(storage_client, 'vlille_data_json', 'vlille_sample_data_yzpt')
-
+    # upload_file()
+    app.run(host='0.0.0.0', port=8080)
 ```
 </details>  <br>
 
@@ -279,7 +273,7 @@ if __name__ == "__main__":
 docker build -t europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file .
 ```	
 
-#### 3.2. Push du Docker Container sur Artifact Registry
+### 3.2. Push du Docker Container sur Artifact Registry
 
 ```sh	
 # Définir les autorisations d'administrateur de l'Artifact Registry pour le compte de service
@@ -295,12 +289,37 @@ gcloud auth configure-docker europe-west9-docker.pkg.dev
 docker push europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file
 ```
 
-#### 3.3. Création d'une instance Compute Engine et exécution du Docker Container
+### 3.3. Cloud Run + Docker
 
 ```sh
-gcloud compute instances create-with-container instance-1 \
-  --container-image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file \
-  --zone europe-west1-b \
-  --project vlille-396911
+# Attribution des droits (run admin) au compte de service
+gcloud projects add-iam-policy-binding vlille-396911 --member="serviceAccount:vlille@vlille-396911.iam.gserviceaccount.com" --role="roles/run.admin" --project=vlille-396911
+
+# Création d'un service Cloud Run
+gcloud run deploy load-file-flask --image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/load_file_flask --platform managed --region europe-west1 --project vlille-396911 --allow-unauthenticated
+
+# Le script s'exécute sur Cloud Run après chaque requête http sur l'URL du service
+
+# Logs :
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=load-file-flask" --project vlille-396911 --format json > logs_cloud_run.json
+
+# suppression du service Cloud Run
+gcloud run services delete load-file-flask --region europe-west1 -q
+```
+
+## 4. Dataproc + PySpark
+
+```sh
+# Création d'un cluster Dataproc : 1 master, 7 workers n1-standard-2
+gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-4 --master-boot-disk-size 50 --num-workers 7 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
+
+# Transfert du script PySpark sur un bucket
+gsutil cp spark_gcs_to_bq.py gs://allo_bucket_yzpt
+
+# Lancement du job PySpark sur le cluster Dataproc
+gcloud dataproc jobs submit pyspark gs://allo_bucket_yzpt/spark_gcs_to_bq.py --cluster cluster-dataproc-vlille --region us-east1 --project vlille-396911 
+
+# Suppression du cluster
+gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --project vlille-396911 -q
 ```
 
