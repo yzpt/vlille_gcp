@@ -309,6 +309,8 @@ gcloud run services delete load-file-flask --region europe-west1 -q
 
 ## 4. Dataproc + PySpark
 
+Chargement des données vers BigQuery avec Dataproc et PySpark.
+
 ```sh
 # Création d'un cluster Dataproc : 1 master, 7 workers n1-standard-2
 gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-4 --master-boot-disk-size 50 --num-workers 7 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
