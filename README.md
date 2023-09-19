@@ -326,7 +326,7 @@ gcloud dataproc jobs submit pyspark gs://allo_bucket_yzpt/spark_gcs_to_bq_3.py -
 gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --project vlille-396911 -q
 ```
 
-## 5 Chargement direct du bucket depuis BigQuery
+## 5. Chargement direct du bucket depuis BigQuery
 
 Edition du schema au format json list pour bigquery
 
@@ -460,7 +460,7 @@ Edition du schema au format json list pour bigquery
     }
     ]
 ```
-</details><br>
+</details>
 
 ```sh
 # Création d'une table BigQuery
