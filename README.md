@@ -263,7 +263,6 @@ def upload_file():
     return "File upload complete: " + destination_blob_name
 
 if __name__ == "__main__":
-    # upload_file()
     app.run(host='0.0.0.0', port=8080)
 ```
 </details>  <br>
@@ -289,7 +288,7 @@ gcloud auth configure-docker europe-west9-docker.pkg.dev
 docker push europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file
 ```
 
-### 3.3. Cloud Run + Docker
+### 3.3. Run du container
 
 ```sh
 # Attribution des droits (run admin) au compte de service
@@ -313,15 +312,43 @@ Chargement des données vers BigQuery avec Dataproc et PySpark.
 
 ```sh
 # Création d'un cluster Dataproc : 1 master, 7 workers n1-standard-2
-gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-4 --master-boot-disk-size 50 --num-workers 7 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
+gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-2 --master-boot-disk-size 50 --num-workers 7 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
 
 # Transfert du script PySpark sur un bucket
-gsutil cp spark_gcs_to_bq.py gs://allo_bucket_yzpt
+gsutil cp spark_gcs_to_bq_3.py gs://allo_bucket_yzpt
 
 # Lancement du job PySpark sur le cluster Dataproc
-gcloud dataproc jobs submit pyspark gs://allo_bucket_yzpt/spark_gcs_to_bq.py --cluster cluster-dataproc-vlille --region us-east1 --project vlille-396911 
+gcloud dataproc jobs submit pyspark gs://allo_bucket_yzpt/spark_gcs_to_bq_3.py --cluster cluster-dataproc-vlille --region us-east1 --project vlille-396911 
+
+# Le traitement est très long (plusieurs heures) car les workers ne sont pas performants.
 
 # Suppression du cluster
 gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --project vlille-396911 -q
 ```
 
+## 5 Chargement direct du bucket depuis BigQuery
+
+```sh
+# Création d'une table BigQuery
+bq mk --table vlille_dataset.vlille_table_direct_from_bq
+
+
+# Edition du schema au format json list pour bigquery
+# --> json_list_schema.json
+
+# Chargement des données récoltées dans le bucket vlille_json_data vers bigquery :
+bq load --source_format=NEWLINE_DELIMITED_JSON vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json json_list_schema.json
+# Très rapide, 30k rows en 16 secs.
+
+
+
+# on aurait pu utiliser l'autodetect:
+# Suppression table
+bq rm -f vlille_dataset.vlille_table_direct_from_bq
+# Création table
+bq mk --table vlille_dataset.vlille_table_direct_from_bq
+# Load avec autodetect
+bq load --source_format=NEWLINE_DELIMITED_JSON --autodetect vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json
+# 24 secs, un peu plus long.
+
+```

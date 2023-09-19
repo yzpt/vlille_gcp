@@ -438,8 +438,7 @@ docker push europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/job_load_file_on_
 # 3. deploy the container on cloud run:
 #   - create a service account with the permission cloud run admin:
         gcloud projects add-iam-policy-binding vlille-396911 --member="serviceAccount:vlille@vlille-396911.iam.gserviceaccount.com" --role="roles/run.admin" --project=vlille-396911
-#   - create a service account with the permission cloud run invoker:
-        gcloud projects add-iam-policy-binding vlille-396911 --member="serviceAccount:vlille@vlille-396911.iam.gserviceaccount.com" --role="roles/run.invoker" --project=vlille-396911
+
 #   - deploy the container on cloud run
     gcloud run deploy job-load-file-on-gcs --image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/job_load_file_on_gcs --platform managed --region europe-west1 --project vlille-396911 --allow-unauthenticated
 
@@ -458,10 +457,15 @@ docker push europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/load_file_flask
 
 gcloud run deploy load-file-flask --image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/load_file_flask --platform managed --region europe-west1 --project vlille-396911 --allow-unauthenticated
 
+# get the logs of the cloud run service
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=load-file-flask" --project vlille-396911 --format json > logs_cloud_run.json
+
+
 # ok --> new file on the bucket on each request
 
 
-# gcloud dataproc to load the json files on bigquery ==================
+# ============= gcloud dataproc to load the json files on bigquery ============================
+
 # création d'un cluster dataproc
 gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-2 --master-boot-disk-size 50 --num-workers 2 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
 
@@ -483,6 +487,34 @@ gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --mast
 # lancemant du job spark
 # ...
 
+# on reprendre depuis le début avec spark_gcs_to_bq_3.py =========================
+# create a bigquery table, scheme have to be the same as the "example_file.json" scheme
+bq mk --table test_dataproc.vlille-4
+
+
+
+# count the number of rows of a bigquery table
+bq query --use_legacy_sql=false 'SELECT COUNT(*) FROM `test_dataproc.vlille-4`'
+
+# transfert du script spark sur le bucket
+gsutil cp spark_gcs_to_bq_3.py gs://allo_bucket_yzpt
+
+# création d'un cluster dataproc avec 7 workers
+gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-2 --master-boot-disk-size 50 --num-workers 7 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
+
+# lancemant du job spark
+gcloud dataproc jobs submit pyspark gs://allo_bucket_yzpt/spark_gcs_to_bq_3.py --cluster cluster-dataproc-vlille --region us-east1 --project vlille-396911
+
+# get the logs of the job
+gcloud logging read "resource.type=cloud_dataproc_cluster AND resource.labels.cluster_name=cluster-dataproc-vlille AND resource.labels.project_id=vlille-396911 AND resource.labels.region=us-east1 AND textPayload:spark_gcs_to_bq_3.py" --project vlille-396911 --format json > logs_dataproc.json
+
+# Très long.
+
+# delete the cluster
+gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --project vlille-396911 -q
+
+
+
 
 
 # cloud composer ================================
@@ -491,3 +523,97 @@ gcloud services enable composer.googleapis.com --project=vlille-396911
 
 # création d'un bucket pour cloud composer
 gsutil mb gs://composer_bucket_yzpt
+
+
+
+# dataflow ======================================
+# https://cloud.google.com/dataflow/docs/quickstarts/quickstart-python?hl=fr
+
+# Activer les API Dataflow, Compute Engine, Cloud Logging, Cloud Storage, Google Cloud Storage JSON, BigQuery, Cloud Pub/Sub, Cloud Datastore, et Cloud Resource Manager.
+gcloud services enable dataflow.googleapis.com --project=vlille-396911
+gcloud services enable compute.googleapis.com --project=vlille-396911
+gcloud services enable logging.googleapis.com --project=vlille-396911
+gcloud services enable datastore.googleapis.com --project=vlille-396911
+gcloud services enable cloudresourcemanager.googleapis.com --project=vlille-396911
+
+# Créer un compte de service
+gcloud iam service-accounts create dataflow-sa-yzpt --project=vlille-396911
+# Liste des comptes de services
+gcloud iam service-accounts list --project=vlille-396911
+# dataflow-sa-yzpt@vlille-396911.iam.gserviceaccount.com
+# Attribution des Project > Owner au compte de service
+gcloud projects add-iam-policy-binding vlille-396911 --member="serviceAccount:dataflow-sa-yzpt@vlille-396911.iam.gserviceaccount.com" --role="roles/owner" --project=vlille-396911
+# Télécharger la clé du compte de service
+gcloud iam service-accounts keys create key-dataflow-sa-yzpt.json --iam-account=dataflow-sa-yzpt@vlille-396911.iam.gserviceaccount.com --project=vlille-396911 --key-file-type=json
+# > key-dataflow-sa-yzpt.json
+
+# cmd to set a variable
+$env:GOOGLE_APPLICATION_CREDENTIALS="C:\Users\Yohann\projets_de\vlille_functions\key-dataflow-sa-yzpt.json"
+
+
+
+# création d'un bucket pour dataflow
+gsutil mb gs://dataflow_bucket_yzpt
+
+pip install wheel
+pip install apache-beam[gcp]
+
+python -m apache_beam.examples.wordcount --output outputs
+
+python -m apache_beam.examples.wordcount \
+    --region DATAFLOW_REGION \
+    --input gs://dataflow-samples/shakespeare/kinglear.txt \
+    --output gs://STORAGE_BUCKET/results/outputs \
+    --runner DataflowRunner \
+    --project PROJECT_ID \
+    --temp_location gs://STORAGE_BUCKET/tmp/
+
+python -m apache_beam.examples.wordcount --region europe-west1 --input gs://dataflow-samples/shakespeare/kinglear.txt --output gs://dataflow_bucket_yzpt/results/outputs --runner DataflowRunner --project vlille-396911 --temp_location gs://dataflow_bucket_yzpt/tmp/
+
+gsutil ls -lh gs://dataflow_bucket_yzpt/results/outputs*
+gsutil cat gs://dataflow_bucket_yzpt/results/outputs-00000-of-00001
+
+# C'est bien, now go faire son propre job dataflow
+# https://beam.apache.org/documentation/pipelines/design-your-pipeline/
+# https://www.youtube.com/watch?v=65lmwL7rSy4&list=PL4dEBWmGSIU8svIq9JYmVGXzVTB6iTUI4&ab_channel=GoogleCloudTech
+
+# https://beam.apache.org/get-started/quickstart/python/#create-a-pipeline
+# https://www.youtube.com/watch?v=dXhF3JJg3mE&t=440s&ab_channel=GoogleCloudTech
+
+# Utiliser des modèles Flex:
+# https://cloud.google.com/dataflow/docs/guides/templates/using-flex-templates?hl=fr
+
+# ======================================= https://www.cloudskillsboost.google/journeys/16 =======================================
+
+
+
+
+
+
+
+#  ==========    DIRECT DEPUIS BIGQUERY =================
+# Création d'un dataset BigQuery
+bq mk vlille_dataset
+
+# Création d'une table BigQuery
+bq mk --table vlille_dataset.vlille_table-bq-direct
+
+# édition json_list_schema.json --> JSON list pour bigquery !
+# voir --> json_list_schema.json
+
+# test chargement d'un fichier json --> BigQuery selon le schéma spéciifé
+bq load --source_format=NEWLINE_DELIMITED_JSON vlille_dataset.vlille_table-bq-direct data/data_file_example.json json_list_schema.json
+# --> ok
+
+# test avec 100 fichers locaux dans le dossier data/sample/
+# bq load command to load multiple files into a single table
+bq load --source_format=NEWLINE_DELIMITED_JSON vlille_dataset.vlille_table-bq-direct gs://vlille_sample_data_yzpt/*.json json_list_schema.json
+
+# très rapide !
+
+# supprimer et recréer la table BigQuery 
+bq rm -f vlille_dataset.vlille_table-bq-direct
+bq mk --table vlille_dataset.vlille_table-bq-direct
+
+# test avec l'ensemble des données récoltées dans le bucket vlille_json_data
+bq load --source_format=NEWLINE_DELIMITED_JSON vlille_dataset.vlille_table-bq-direct gs://vlille_data_json/*.json json_list_schema.json
