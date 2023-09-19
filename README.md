@@ -49,19 +49,16 @@ gcloud storage buckets create gs://vlille_data_json
 gcloud storage buckets create gs://fct_yzpt 
 ```
 
-A refaire automatiquement avec le schéma d'un fichier json de l'API V'lille
+Edition du schema au format json pour bigquery
+--> json_list_schema.json
 
-``` sh
+```sh
 # Création d'un dataset BigQuery
-bq mk vlille_dataset
+bq mk vlille_dataset 
 # Dataset 'vlille-396911:vlille_dataset' successfully created.
-# Création d'une table BigQuery
-bq mk --table vlille_dataset.vlille_table \
-  recordid:STRING, \
-  record_timestamp:STRING, \
-  geometry:STRING, \
-  nbvelosdispo:STRING, \
-  ...
+
+# Création d'une table BigQuery avec le schema json
+bq mk --table vlille_dataset.vlille_table json_list_schema.json
 ```
 
 ### 2.1. Cloud Function : contenu et transfert du script
@@ -120,23 +117,7 @@ def insert_data_json_to_bigquery(data):
 
     data_to_insert = []
     for record in data['records']:
-        row = {
-            "recordid": record['recordid'],
-            "record_timestamp": record['record_timestamp'],
-            "nbvelosdispo": record['fields']['nbvelosdispo'],
-            "nbplacesdispo": record['fields']['nbplacesdispo'],
-            "libelle": record['fields']['libelle'],
-            "adresse": record['fields']['adresse'],
-            "nom": record['fields']['nom'],
-            "etat": record['fields']['etat'],
-            "commune": record['fields']['commune'],
-            "etatconnexion": record['fields']['etatconnexion'],
-            "type": record['fields']['type'],
-            "longitude": record['fields']['localisation'][0],
-            "latitude": record['fields']['localisation'][1],
-            "datemiseajour": record['fields']['datemiseajour']
-        }
-        data_to_insert.append(row)
+        data_to_insert.append(record)
     client.insert_rows(table, data_to_insert)
 
 
@@ -468,10 +449,10 @@ bq mk --table vlille_dataset.vlille_table_direct_from_bq
 
 # Chargement des données récoltées dans le bucket vlille_json_data vers bigquery :
 bq load --source_format=NEWLINE_DELIMITED_JSON vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json json_list_schema.json
-# Très rapide, 30k rows en 16 secs.
+# 16 secs (36k rows)
 
 # on aurait pu utiliser l'autodetect:
 bq load --source_format=NEWLINE_DELIMITED_JSON --autodetect vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json
-# 24 secs, un peu plus long.
+# 24 secs
 
 ```

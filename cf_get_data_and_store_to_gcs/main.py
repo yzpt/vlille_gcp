@@ -38,29 +38,13 @@ def store_data_json_to_gcs_bucket(data, bucket_name, str_time_paris):
 def insert_data_json_to_bigquery(data):
     client = bigquery.Client(project=project_name)
     dataset_id = 'vlille_dataset'
-    table_id = 'vlille_table'
+    table_id = 'test_insert_sans_schema'
     table_ref = client.dataset(dataset_id).table(table_id)
     table = client.get_table(table_ref)  # API call
 
     data_to_insert = []
     for record in data['records']:
-        row = {
-            "recordid": record['recordid'],
-            "record_timestamp": record['record_timestamp'],
-            "nbvelosdispo": record['fields']['nbvelosdispo'],
-            "nbplacesdispo": record['fields']['nbplacesdispo'],
-            "libelle": record['fields']['libelle'],
-            "adresse": record['fields']['adresse'],
-            "nom": record['fields']['nom'],
-            "etat": record['fields']['etat'],
-            "commune": record['fields']['commune'],
-            "etatconnexion": record['fields']['etatconnexion'],
-            "type": record['fields']['type'],
-            "longitude": record['fields']['localisation'][0],
-            "latitude": record['fields']['localisation'][1],
-            "datemiseajour": record['fields']['datemiseajour']
-        }
-        data_to_insert.append(row)
+        data_to_insert.append(record)
     client.insert_rows(table, data_to_insert)
 
 
