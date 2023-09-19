@@ -50,7 +50,98 @@ gcloud storage buckets create gs://fct_yzpt
 ```
 
 Edition du schema au format json pour bigquery
---> json_list_schema.json
+<details>
+    <summary>json_list_schema.json</summary>
+    
+```json
+[{
+    "name": "datasetid",
+    "type": "STRING"
+},
+{
+    "name": "recordid",
+    "type": "STRING"
+},
+{
+    "name": "fields",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+    {
+        "name": "nbvelosdispo",
+        "type": "INTEGER"
+    },
+    {
+        "name": "nbplacesdispo",
+        "type": "INTEGER"
+    },
+    {
+        "name": "libelle",
+        "type": "INTEGER"
+    },
+    {
+        "name": "adresse",
+        "type": "STRING"
+    },
+    {
+        "name": "nom",
+        "type": "STRING"
+    },
+    {
+        "name": "etat",
+        "type": "STRING"
+    },
+    {
+        "name": "commune",
+        "type": "STRING"
+    },
+    {
+        "name": "etatconnexion",
+        "type": "STRING"
+    },
+    {
+        "name": "type",
+        "type": "STRING"
+    },
+    {
+        "name": "geo",
+        "type": "FLOAT",
+        "mode": "REPEATED"
+    },
+    {
+        "name": "localisation",
+        "type": "FLOAT",
+        "mode": "REPEATED"
+    },
+    {
+        "name": "datemiseajour",
+        "type": "TIMESTAMP"
+    }
+    ]
+},
+{
+    "name": "geometry",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+    {
+        "name": "type",
+        "type": "STRING"
+    },
+    {
+        "name": "coordinates",
+        "type": "FLOAT",
+        "mode": "REPEATED"
+    }
+    ]
+},
+{
+    "name": "record_timestamp",
+    "type": "TIMESTAMP"
+}]
+```
+
+</details><br>
 
 ```sh
 # Création d'un dataset BigQuery
@@ -291,6 +382,62 @@ gcloud run services delete load-file-flask --region europe-west1 -q
 
 Chargement des données vers BigQuery avec Dataproc et PySpark.
 
+<details>
+  <summary>script PySpark : spark_gcs_to_bq_3.py</summary>
+
+```python
+from pyspark.sql import SparkSession
+
+# Create a SparkSession
+spark = SparkSession.builder \
+    .appName("Spark SQL - vlille") \
+    .config("spark.driver.maxResultSize", "10g") \
+    .config("spark.driver.memory", "10g") \
+    .getOrCreate()
+
+# Define the GCS bucket and path
+json_dir = "gs://vlille_sample_data_yzpt/"
+
+# List the JSON files in the directory
+json_files = spark.sparkContext.binaryFiles(json_dir + "*.json")
+
+# Initialize a counter for processed files
+processed_files = 0
+
+# Iterate through each JSON file
+for json_file in json_files.collect()[:3]:
+    # Read the JSON file
+    df = spark.read.json(json_file[0])
+    
+    # Create a view
+    df.createOrReplaceTempView("vlille")
+    
+    # Query the view
+    df = spark.sql("SELECT * FROM vlille")
+    
+    # Show the results (optional)
+    df.show()
+    
+    # Write the results to a BigQuery table
+    df.write \
+        .format("bigquery") \
+        .option("table", "vlille-396911.test_dataproc.vlille-4") \
+        .option("temporaryGcsBucket", "yzpt-temp-bucket") \
+        .mode("overwrite") \
+        .save()
+    
+    # Increment the processed files counter
+    processed_files += 1
+    
+    # Print progress information
+    print(f"Processed {processed_files} files")
+
+# Stop the session
+spark.stop()
+```
+</details>  <br>
+
+Cluster dataproc et éxécution du script :
 ```sh
 # Création d'un cluster Dataproc : 1 master, 7 workers n1-standard-2
 gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-2 --master-boot-disk-size 50 --num-workers 7 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
@@ -309,140 +456,7 @@ gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --proj
 
 ## 5. Chargement direct du bucket depuis BigQuery
 
-Edition du schema au format json list pour bigquery
-
-<details>
-    <summary>json_list_schema.json</summary>
-
-```json
-    [
-    {
-        "name": "nhits",
-        "type": "INTEGER"
-    },
-    {
-        "name": "parameters",
-        "type": "RECORD",
-        "mode": "NULLABLE",
-        "fields": [
-        {
-            "name": "dataset",
-            "type": "STRING"
-        },
-        {
-            "name": "rows",
-            "type": "INTEGER"
-        },
-        {
-            "name": "start",
-            "type": "INTEGER"
-        },
-        {
-            "name": "format",
-            "type": "STRING"
-        },
-        {
-            "name": "timezone",
-            "type": "STRING"
-        }
-        ]
-    },
-    {
-        "name": "records",
-        "type": "RECORD",
-        "mode": "REPEATED",
-        "fields": [
-        {
-            "name": "datasetid",
-            "type": "STRING"
-        },
-        {
-            "name": "recordid",
-            "type": "STRING"
-        },
-        {
-            "name": "fields",
-            "type": "RECORD",
-            "mode": "NULLABLE",
-            "fields": [
-            {
-                "name": "nbvelosdispo",
-                "type": "INTEGER"
-            },
-            {
-                "name": "nbplacesdispo",
-                "type": "INTEGER"
-            },
-            {
-                "name": "libelle",
-                "type": "INTEGER"
-            },
-            {
-                "name": "adresse",
-                "type": "STRING"
-            },
-            {
-                "name": "nom",
-                "type": "STRING"
-            },
-            {
-                "name": "etat",
-                "type": "STRING"
-            },
-            {
-                "name": "commune",
-                "type": "STRING"
-            },
-            {
-                "name": "etatconnexion",
-                "type": "STRING"
-            },
-            {
-                "name": "type",
-                "type": "STRING"
-            },
-            {
-                "name": "geo",
-                "type": "FLOAT",
-                "mode": "REPEATED"
-            },
-            {
-                "name": "localisation",
-                "type": "FLOAT",
-                "mode": "REPEATED"
-            },
-            {
-                "name": "datemiseajour",
-                "type": "TIMESTAMP"
-            }
-            ]
-        },
-        {
-            "name": "geometry",
-            "type": "RECORD",
-            "mode": "NULLABLE",
-            "fields": [
-            {
-                "name": "type",
-                "type": "STRING"
-            },
-            {
-                "name": "coordinates",
-                "type": "FLOAT",
-                "mode": "REPEATED"
-            }
-            ]
-        },
-        {
-            "name": "record_timestamp",
-            "type": "TIMESTAMP"
-        }
-        ]
-    }
-    ]
-```
-</details>
-
+Rapide.
 ```sh
 # Création d'une table BigQuery
 bq mk --table vlille_dataset.vlille_table_direct_from_bq
@@ -451,8 +465,6 @@ bq mk --table vlille_dataset.vlille_table_direct_from_bq
 bq load --source_format=NEWLINE_DELIMITED_JSON vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json json_list_schema.json
 # 16 secs (36k rows)
 
-# on aurait pu utiliser l'autodetect:
+# l'autodetect allonge le délai de traitement : 24 secs.
 bq load --source_format=NEWLINE_DELIMITED_JSON --autodetect vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json
-# 24 secs
-
 ```

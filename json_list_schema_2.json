@@ -1,88 +1,85 @@
-[
+[{
+    "name": "datasetid",
+    "type": "STRING"
+},
+{
+    "name": "recordid",
+    "type": "STRING"
+},
+{
+    "name": "fields",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
     {
-      "name": "datasetid",
-      "type": "STRING"
+        "name": "nbvelosdispo",
+        "type": "INTEGER"
     },
     {
-      "name": "recordid",
-      "type": "STRING"
+        "name": "nbplacesdispo",
+        "type": "INTEGER"
     },
     {
-      "name": "fields",
-      "type": "RECORD",
-      "mode": "NULLABLE",
-      "fields": [
-        {
-          "name": "nbvelosdispo",
-          "type": "INTEGER"
-        },
-        {
-          "name": "nbplacesdispo",
-          "type": "INTEGER"
-        },
-        {
-          "name": "libelle",
-          "type": "INTEGER"
-        },
-        {
-          "name": "adresse",
-          "type": "STRING"
-        },
-        {
-          "name": "nom",
-          "type": "STRING"
-        },
-        {
-          "name": "etat",
-          "type": "STRING"
-        },
-        {
-          "name": "commune",
-          "type": "STRING"
-        },
-        {
-          "name": "etatconnexion",
-          "type": "STRING"
-        },
-        {
-          "name": "type",
-          "type": "STRING"
-        },
-        {
-          "name": "geo",
-          "type": "FLOAT",
-          "mode": "REPEATED"
-        },
-        {
-          "name": "localisation",
-          "type": "FLOAT",
-          "mode": "REPEATED"
-        },
-        {
-          "name": "datemiseajour",
-          "type": "TIMESTAMP"
-        }
-      ]
+        "name": "libelle",
+        "type": "INTEGER"
     },
     {
-      "name": "geometry",
-      "type": "RECORD",
-      "mode": "NULLABLE",
-      "fields": [
-        {
-          "name": "type",
-          "type": "STRING"
-        },
-        {
-          "name": "coordinates",
-          "type": "FLOAT",
-          "mode": "REPEATED"
-        }
-      ]
+        "name": "adresse",
+        "type": "STRING"
     },
     {
-      "name": "record_timestamp",
-      "type": "TIMESTAMP"
+        "name": "nom",
+        "type": "STRING"
+    },
+    {
+        "name": "etat",
+        "type": "STRING"
+    },
+    {
+        "name": "commune",
+        "type": "STRING"
+    },
+    {
+        "name": "etatconnexion",
+        "type": "STRING"
+    },
+    {
+        "name": "type",
+        "type": "STRING"
+    },
+    {
+        "name": "geo",
+        "type": "FLOAT",
+        "mode": "REPEATED"
+    },
+    {
+        "name": "localisation",
+        "type": "FLOAT",
+        "mode": "REPEATED"
+    },
+    {
+        "name": "datemiseajour",
+        "type": "TIMESTAMP"
     }
-  ]
-  
+    ]
+},
+{
+    "name": "geometry",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+    {
+        "name": "type",
+        "type": "STRING"
+    },
+    {
+        "name": "coordinates",
+        "type": "FLOAT",
+        "mode": "REPEATED"
+    }
+    ]
+},
+{
+    "name": "record_timestamp",
+    "type": "TIMESTAMP"
+}]  
