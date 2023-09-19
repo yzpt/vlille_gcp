@@ -328,26 +328,149 @@ gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --proj
 
 ## 5 Chargement direct du bucket depuis BigQuery
 
+Edition du schema au format json list pour bigquery
+
+<details>
+    <summary>json_list_schema.json</summary>
+
+```json
+    [
+    {
+        "name": "nhits",
+        "type": "INTEGER"
+    },
+    {
+        "name": "parameters",
+        "type": "RECORD",
+        "mode": "NULLABLE",
+        "fields": [
+        {
+            "name": "dataset",
+            "type": "STRING"
+        },
+        {
+            "name": "rows",
+            "type": "INTEGER"
+        },
+        {
+            "name": "start",
+            "type": "INTEGER"
+        },
+        {
+            "name": "format",
+            "type": "STRING"
+        },
+        {
+            "name": "timezone",
+            "type": "STRING"
+        }
+        ]
+    },
+    {
+        "name": "records",
+        "type": "RECORD",
+        "mode": "REPEATED",
+        "fields": [
+        {
+            "name": "datasetid",
+            "type": "STRING"
+        },
+        {
+            "name": "recordid",
+            "type": "STRING"
+        },
+        {
+            "name": "fields",
+            "type": "RECORD",
+            "mode": "NULLABLE",
+            "fields": [
+            {
+                "name": "nbvelosdispo",
+                "type": "INTEGER"
+            },
+            {
+                "name": "nbplacesdispo",
+                "type": "INTEGER"
+            },
+            {
+                "name": "libelle",
+                "type": "INTEGER"
+            },
+            {
+                "name": "adresse",
+                "type": "STRING"
+            },
+            {
+                "name": "nom",
+                "type": "STRING"
+            },
+            {
+                "name": "etat",
+                "type": "STRING"
+            },
+            {
+                "name": "commune",
+                "type": "STRING"
+            },
+            {
+                "name": "etatconnexion",
+                "type": "STRING"
+            },
+            {
+                "name": "type",
+                "type": "STRING"
+            },
+            {
+                "name": "geo",
+                "type": "FLOAT",
+                "mode": "REPEATED"
+            },
+            {
+                "name": "localisation",
+                "type": "FLOAT",
+                "mode": "REPEATED"
+            },
+            {
+                "name": "datemiseajour",
+                "type": "TIMESTAMP"
+            }
+            ]
+        },
+        {
+            "name": "geometry",
+            "type": "RECORD",
+            "mode": "NULLABLE",
+            "fields": [
+            {
+                "name": "type",
+                "type": "STRING"
+            },
+            {
+                "name": "coordinates",
+                "type": "FLOAT",
+                "mode": "REPEATED"
+            }
+            ]
+        },
+        {
+            "name": "record_timestamp",
+            "type": "TIMESTAMP"
+        }
+        ]
+    }
+    ]
+```
+</details><br>
+
 ```sh
 # Création d'une table BigQuery
 bq mk --table vlille_dataset.vlille_table_direct_from_bq
-
-
-# Edition du schema au format json list pour bigquery
-# --> json_list_schema.json
 
 # Chargement des données récoltées dans le bucket vlille_json_data vers bigquery :
 bq load --source_format=NEWLINE_DELIMITED_JSON vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json json_list_schema.json
 # Très rapide, 30k rows en 16 secs.
 
-
-
 # on aurait pu utiliser l'autodetect:
-# Suppression table
-bq rm -f vlille_dataset.vlille_table_direct_from_bq
-# Création table
-bq mk --table vlille_dataset.vlille_table_direct_from_bq
-# Load avec autodetect
 bq load --source_format=NEWLINE_DELIMITED_JSON --autodetect vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json
 # 24 secs, un peu plus long.
 
