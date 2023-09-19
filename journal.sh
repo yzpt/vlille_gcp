@@ -617,3 +617,31 @@ bq mk --table vlille_dataset.vlille_table-bq-direct
 
 # test avec l'ensemble des données récoltées dans le bucket vlille_json_data
 bq load --source_format=NEWLINE_DELIMITED_JSON vlille_dataset.vlille_table-bq-direct gs://vlille_data_json/*.json json_list_schema.json
+
+
+# Facto de la fonction (insertion bq json sans schema)) ===================
+# branch no_scheme_bq_insert
+git checkout -b no_scheme_bq_insert
+# --> znb.ipynb
+# --> cf_get_data_and_store_to_gcs/main.py
+
+# bq display rows of a table
+bq query --use_legacy_sql=false 'SELECT * FROM `vlille_dataset.test_insert_sans_schema`'
+# error:
+# BigQuery error in query operation: Error processing job
+# 'vlille-396911:bqjob_r74edfec326688dfd_0000018aaf133990_1': Table
+# vlille_dataset.test_insert_sans_schema does not have a schema.
+# error aussi sur znb
+
+# bq create a table from a json file
+bq mk --table vlille_dataset.schema_from_sh json_list_schema.json
+bq rm -f vlille_dataset.schema_from_sh
+bq mk --table vlille_dataset.schema_from_sh json_list_schema_2.json
+
+# bq get schema of a table
+bq show vlille_dataset.schema_from_sh
+
+# merge branch no_scheme_bq_insert into master
+git checkout master
+git merge no_scheme_bq_insert
+git push vlille_gcp master
