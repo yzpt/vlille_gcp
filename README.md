@@ -308,8 +308,10 @@ job_load_file_on_gcs/<br>
 ├── key-vlille.json<br>
 └── app.py
 
-<details>
-  <summary>app.py</summary>
+<!-- <details>
+  <summary>app.py</summary> -->
+
+* app.py
 
 ```python
 import sys
@@ -346,7 +348,7 @@ def upload_file():
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
 ```
-</details>  <br>
+<!-- </details>  <br> -->
 
 ```sh
 # build du container Docker
@@ -391,8 +393,9 @@ gcloud run services delete load-file-flask --region europe-west1 -q
 
 Chargement des données vers BigQuery avec Dataproc et PySpark.
 
-<details>
-  <summary>script PySpark : spark_gcs_to_bq_3.py</summary>
+<!-- <details> -->
+  <!-- <summary>script PySpark : spark_gcs_to_bq_3.py</summary> -->
+* Script PySpark : spark_gcs_to_bq_3.py
 
 ```python
 from pyspark.sql import SparkSession
@@ -444,7 +447,7 @@ for json_file in json_files.collect()[:3]:
 # Stop the session
 spark.stop()
 ```
-</details>  <br>
+<!-- </details>  <br> -->
 
 Cluster dataproc et éxécution du script :
 ```sh
@@ -478,4 +481,9 @@ bq load --source_format=NEWLINE_DELIMITED_JSON vlille_dataset.vlille_table_direc
 # l'autodetect allonge le délai de traitement : 24 secs.
 bq load --source_format=NEWLINE_DELIMITED_JSON --autodetect vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json
 ```
+
+## 6. Dataviz
+
+https://pypi.org/project/flask-googlemaps/
+https://github.com/topics/flask-dashboard
 

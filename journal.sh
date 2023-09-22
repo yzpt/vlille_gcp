@@ -645,3 +645,7 @@ bq show vlille_dataset.schema_from_sh
 git checkout master
 git merge no_scheme_bq_insert
 git push vlille_gcp master
+
+
+
+# =============  FLASK & BIGQUERY DASHBOARD ===================
