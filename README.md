@@ -2,6 +2,9 @@
 
 Collecte des données de l'<a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom">API V'lille (Disponibilité en temps réel des stations)</a>, stockage et traitement sur GCP : Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker
 
+<!-- insert a svg file -->:
+<img src="./vlille_diagram_SVG.svg" alt="drawing" width="800"/>
+
 ## 1. Configuration GCP
 
 Créer un projet sur GCP après s'être authentifié sur google DSK cli
@@ -457,6 +460,7 @@ gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --proj
 ## 5. Chargement direct du bucket depuis BigQuery
 
 Rapide.
+
 ```sh
 # Création d'une table BigQuery
 bq mk --table vlille_dataset.vlille_table_direct_from_bq
@@ -468,3 +472,4 @@ bq load --source_format=NEWLINE_DELIMITED_JSON vlille_dataset.vlille_table_direc
 # l'autodetect allonge le délai de traitement : 24 secs.
 bq load --source_format=NEWLINE_DELIMITED_JSON --autodetect vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json
 ```
+
