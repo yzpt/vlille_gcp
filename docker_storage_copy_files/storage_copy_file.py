@@ -32,12 +32,6 @@ def create_new_bucket(bucket_name):
     bucket = storage_client.create_bucket(bucket_name)
     print("Bucket {} created".format(bucket.name))
 
-def delete_bucket(bucket_name):
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    bucket.delete()
-    print("Bucket {} deleted".format(bucket.name))
-
 if __name__ == "__main__":
     create_new_bucket('vlille_sample_data_yzpt')
     copy_all_files('vlille_data_json', 'vlille_sample_data_yzpt')
