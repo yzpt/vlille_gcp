@@ -1,9 +1,15 @@
 # V'lille GCP
 
-Collecte des données de l'<a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom">API V'lille (Disponibilité en temps réel des stations)</a>, stockage et traitement sur GCP : Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker
+Collecte des données de l'<a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom">API V'lille (Disponibilité en temps réel des stations)</a>, stockage et traitement sur GCP : Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker.
 
-<!-- insert a svg file -->:
+L'objectif de ce projet consiste à interconnecter des services GCP couramment utilisés dans le traitement de la donnée.
+
 <img src="./vlille_diagram_SVG.svg" alt="drawing" width="800"/>
+
+Ressources :
+* <a href="https://cloud.google.com/sdk/docs?hl=fr">Documentation de la CLI Google CLoud</a>
+* <a href="https://github.com/googleapis/google-cloud-python">Google Cloud Client Library for Python</a>
+
 
 ## 1. Configuration GCP
 
