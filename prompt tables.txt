@@ -1,0 +1,29 @@
+This is the json list schema of a bigquery table :
+[
+    {"name": "nom", "type": "STRING"},
+    {"name": "libelle", "type": "STRING"},
+    {"name": "adresse", "type": "STRING"},
+    {"name": "commune", "type": "STRING"},
+    {"name": "type", "type": "STRING"},
+    {"name": "latitude", "type": "FLOAT"},
+    {"name": "longitude", "type": "FLOAT"},
+    {"name": "etat", "type": "STRING"},
+    {"name": "nb_velos_dispo", "type": "INTEGER"},
+    {"name": "nb_places_dispo", "type": "INTEGER"},
+    {"name": "etat_connexion", "type": "STRING"},
+    {"name": "derniere_maj", "type": "TIMESTAMP"},
+    {"name": "record_timestamp", "type": "TIMESTAMP"}
+]
+
+i need to create tables for better data modeling
+
+records table : station_id, etat, nb_velos_dispo, nb_places_dispo, etat_connexion, derniere_maj, record_timestamp
+
+stations table : id, nom, libelle, adresse, commune, type, latitude, longitude
+
+give me bigquery codes to create tables for this model
+
+record table primary key : station_id, record_timestamp
+record table foreign key : station_id references
+
+stations table primary key : id

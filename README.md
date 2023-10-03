@@ -54,10 +54,11 @@ gcloud alpha billing projects link vlille-gcp --billing-account=012A63-E71939-70
 Utilisation de Cloud Functions pour collecter les données de l'API V'lille et les stocker dans un bucket GCS ainsi que dans une table BigQuery, triggée chaque minute par un Pub/Sub + Scheduler.
 
 ```sh
-# Activation des API : Build, Functions, Pub/Sub
+# Activation des API : Build, Functions, Pub/Sub, Scheduler
 gcloud services enable cloudbuild.googleapis.com
 gcloud services enable cloudfunctions.googleapis.com
 gcloud services enable pubsub.googleapis.com
+gcloud services enable cloudscheduler.googleapis.com
 
 # Création du bucket GCS de récolte des données
 gcloud storage buckets create gs://vlille_gcp_data
@@ -95,9 +96,121 @@ Edition du schema au format json pour bigquery
 bq mk vlille_gcp_dataset 
 # Dataset 'vlille-gcp:vlille_gcp_dataset' successfully created.
 
-# Création d'une table BigQuery avec le schema json
-bq mk --table vlille_gcp_dataset.records json_list_data_schema.json
+# delete a bigquery table, autoconfirm
+bq rm -f vlille_gcp_dataset.stations 
+bq rm -f vlille_gcp_dataset.records
 ```
+
+Création des tables BigQuery
+
+* Avec BigQuery UI :
+
+    ```SQL
+    CREATE TABLE vlille_gcp_dataset.stations (
+        id INT64,
+        nom STRING,
+        libelle STRING,
+        adresse STRING,
+        commune STRING,
+        type STRING,
+        latitude FLOAT64,
+        longitude FLOAT64
+    );
+
+
+    CREATE TABLE vlille_gcp_dataset.records (
+        station_id INT64,
+        etat STRING,
+        nb_velos_dispo INT64,
+        nb_places_dispo INT64,
+        etat_connexion STRING,
+        derniere_maj TIMESTAMP,
+        record_timestamp TIMESTAMP
+    );
+    ```
+
+* Ou gcloud CLI :
+
+    ```sh
+    bq mk --schema id:INT64,nom:STRING,libelle:STRING,adresse:STRING,commune:STRING,type:STRING,latitude:FLOAT64,longitude:FLOAT64 --table vlille_gcp_dataset.stations
+
+    bq mk --schema station_id:INT64,etat:STRING,nb_velos_dispo:INT64,nb_places_dispo:INT64,etat_connexion:STRING,derniere_maj:TIMESTAMP,record_timestamp:TIMESTAMP --table vlille_gcp_dataset.records
+    ```
+
+* Ou Python client, plus pratique ensuite pour alimenter une fois la table stations :
+
+    ```python
+    from google.cloud import bigquery
+    import os
+
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille-gcp.json"
+
+    client = bigquery.Client()
+
+    # Create a 'stations' table
+    table_id = "vlille-gcp.vlille_gcp_dataset.stations"
+    schema = [
+        bigquery.SchemaField("id", "INT64"), # id = libelle
+        bigquery.SchemaField("nom", "STRING"),
+        bigquery.SchemaField("adresse", "STRING"),
+        bigquery.SchemaField("commune", "STRING"),
+        bigquery.SchemaField("type", "STRING"),
+        bigquery.SchemaField("latitude", "FLOAT64"),
+        bigquery.SchemaField("longitude", "FLOAT64"),
+    ]
+    table = bigquery.Table(table_id, schema=schema)
+    table = client.create_table(table)  # Make an API request.
+    print(
+        "Created table {}.{}.{}".format(table.project, table.dataset_id, table.table_id)
+    )
+
+    # Create a 'records' table
+    table_id = "vlille-gcp.vlille_gcp_dataset.records"
+    schema = [
+        bigquery.SchemaField("station_id", "INT64"),
+        bigquery.SchemaField("etat", "STRING"),
+        bigquery.SchemaField("nb_velos_dispo", "INT64"),
+        bigquery.SchemaField("nb_places_dispo", "INT64"),
+        bigquery.SchemaField("etat_connexion", "STRING"),
+        bigquery.SchemaField("derniere_maj", "TIMESTAMP"),
+        bigquery.SchemaField("record_timestamp", "TIMESTAMP"),
+    ]
+    table = bigquery.Table(table_id, schema=schema)
+    table = client.create_table(table)  # Make an API request.
+    print(
+        "Created table {}.{}.{}".format(table.project, table.dataset_id, table.table_id)
+    )
+
+    # On alimente la table stations une fois avec une requête:
+    import requests
+
+    url = "https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&rows=300&facet=libelle&facet=nom&facet=commune&facet=etat&facet=type&facet=etatconnexion"
+    response = requests.get(url)
+    data = response.json()
+
+    rows_to_insert = []
+    for record in data["records"]:
+        rows_to_insert.append(
+            (
+                record["fields"]["libelle"], # id = libelle
+                record["fields"]["nom"],
+                record["fields"]["adresse"],
+                record["fields"]["commune"],
+                record["fields"]["type"],
+                record["fields"]["localisation"][0],
+                record["fields"]["localisation"][1],
+            )
+        )
+    
+    table_id = "vlille-gcp.vlille_gcp_dataset.stations"
+    try:
+        table = client.get_table(table_id)
+        client.insert_rows(table, rows_to_insert)
+        print("Inserted rows.")
+    except Exception as e:
+        print(e)
+    
+    ```
 
 ### 2.1. Cloud Function : contenu et transfert du script
 
@@ -118,14 +231,14 @@ import json
 import pytz
 import os
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille-gcp.json"
 url = 'https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&q=&rows=300&timezone=Europe%2FParis'
 paris_tz = pytz.timezone('Europe/Paris')
 str_time_paris = datetime.now(paris_tz).strftime('%Y-%m-%d_%H:%M:%S')
 
 # Define variables for Cloud Functions
-bucket_name = 'vlille_data_json'
-project_name = 'vlille-396911'
+bucket_name = 'vlille_gcp_data'
+project_name = 'vlille-gcp'
 
 def get_json_data(url):
     # extract data from API
@@ -139,6 +252,8 @@ def store_data_json_to_gcs_bucket(data, bucket_name, str_time_paris):
 
     # Replace with the desired object name
     object_name = "data___" + str_time_paris + ".json"
+    #  replace object_name characters ":" and "-" with "_", anticipating Spark process
+    object_name = object_name.replace(":", "_").replace("-", "_")
     blob = bucket.blob(object_name)
 
     # Convert data to JSON string and upload to GCS
@@ -148,22 +263,30 @@ def store_data_json_to_gcs_bucket(data, bucket_name, str_time_paris):
 
 def insert_data_json_to_bigquery(data):
     client = bigquery.Client(project=project_name)
-    dataset_id = 'vlille_dataset'
-    table_id = 'vlille_table'
+    dataset_id = 'vlille_gcp_dataset'
+    table_id = 'records'
     table_ref = client.dataset(dataset_id).table(table_id)
     table = client.get_table(table_ref)  # API call
 
     data_to_insert = []
     for record in data['records']:
-        data_to_insert.append(record)
+        row = {}
+        row["station_id"] = record["fields"]["libelle"]
+        row["etat"] = record["fields"]["etat"]
+        row["nb_velos_dispo"] = record["fields"]["nbvelosdispo"]
+        row["nb_places_dispo"] = record["fields"]["nbplacesdispo"]
+        row["etat_connexion"] = record["fields"]["etatconnexion"]
+        row["derniere_maj"] = record["fields"]["datemiseajour"]
+        row["record_timestamp"] = record["record_timestamp"]
+        data_to_insert.append(row)
     client.insert_rows(table, data_to_insert)
 
 
 def vlille_pubsub(event, context):
     pubsub_message = base64.b64decode(event['data']).decode('utf-8')
     print(pubsub_message)
-    str_time_paris = datetime.now(paris_tz).strftime('%Y-%m-%d_%H:%M:%S')
-    
+    str_time_paris = datetime.now(paris_tz).strftime('%Y_%m_%d_%H_%M_%S')
+
     try:
         json_data = get_json_data(url)
         print("Data extracted from API")
@@ -185,19 +308,15 @@ def vlille_pubsub(event, context):
 
 if __name__ == "__main__":
     vlille_pubsub('data', 'context')
-
 ```
 
 Zip du dossier et transfert sur un bucket GCS :
 
 ```sh
-Compress-Archive -Path cf-example/main.py,cf-example/requirements.txt -DestinationPath cloud-function-vlille.zip
+Compress-Archive -Path function/main.py, function/requirements.txt, function/key-vlille-gcp.json -DestinationPath cloud-function-vlille-gcp.zip
 
-# Création d'un bucket sur gcs
-gcloud storage buckets create gs://fct_yzpt
-
-# Transfert du fichier cloud-function-vlille.zip sur le bucket
-gsutil cp cloud-function-vlille.zip gs://fct_yzpt
+# Transfert du fichier cloud-function-vlille-gcp.zip
+gsutil cp cloud-function-vlille-gcp.zip gs://vlille_gcp_bucket
 ```
 
 ### 2.2. Topic Pub/Sub
@@ -229,10 +348,17 @@ gcloud scheduler jobs create pubsub cf-vlille-minute --schedule="* * * * *" --to
 
 ### 2.5. Déploiement Cloud Functions
   
-  ```sh
-  # Création d'une fonction cloud qui trigge sur le topic Pub/Sub cloud-function-trigger-vlille
-  gcloud functions deploy allo --region=europe-west1 --runtime=python311 --trigger-topic=cloud-function-trigger-vlille --source=gs://fct_yzpt/cloud-function-vlille.zip --entry-point=vlille_pubsub
-  ```
+```sh
+# Création d'une fonction cloud qui trigge sur le topic Pub/Sub cloud-function-trigger-vlille
+gcloud functions deploy vlille_scheduled_function --region=europe-west1 --runtime=python311 --trigger-topic=cloud-function-trigger-vlille --source=gs://vlille_gcp_bucket/cloud-function-vlille-gcp.zip --entry-point=vlille_pubsub
+
+# Logs :
+gcloud functions logs read vlille_scheduled_function --region=europe-west1
+```
+
+## === ok l'insert realtime dans bigquery est propre 
+
+go transférer les données json récoltées depuis le 24 août dans les tables propres
 
 ## 3. Docker Container + Cloud Run
 

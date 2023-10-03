@@ -47,13 +47,7 @@ def insert_data_json_to_bigquery(data):
     data_to_insert = []
     for record in data['records']:
         row = {}
-        row["nom"] = record["fields"]["nom"]
-        row["libelle"] = record["fields"]["libelle"]
-        row["adresse"] = record["fields"]["adresse"]
-        row["commune"] = record["fields"]["commune"]
-        row["type"] = record["fields"]["type"]
-        row["latitude"] = record["fields"]["localisation"][0]
-        row["longitude"] = record["fields"]["localisation"][1]
+        row["station_id"] = record["fields"]["libelle"]
         row["etat"] = record["fields"]["etat"]
         row["nb_velos_dispo"] = record["fields"]["nbvelosdispo"]
         row["nb_places_dispo"] = record["fields"]["nbplacesdispo"]
@@ -67,9 +61,8 @@ def insert_data_json_to_bigquery(data):
 def vlille_pubsub(event, context):
     pubsub_message = base64.b64decode(event['data']).decode('utf-8')
     print(pubsub_message)
-    str_time_paris = datetime.now(paris_tz).strftime('%Y-%m-%d_%H:%M:%S')
-    
-def allo():
+    str_time_paris = datetime.now(paris_tz).strftime('%Y_%m_%d_%H_%M_%S')
+
     try:
         json_data = get_json_data(url)
         print("Data extracted from API")
@@ -78,7 +71,7 @@ def allo():
     
     try:
         store_data_json_to_gcs_bucket(json_data, bucket_name, str_time_paris)
-        print("File uploaded to gs://" +  bucket_name + "/{}.".format("data___" + str_time_paris.replace(":", "_").replace("-", "_") + ".json"))
+        print("File uploaded to gs://" +  bucket_name + "/{}.".format("data___" + str_time_paris + ".json"))
     except Exception as e:
         print(e)
 
@@ -90,6 +83,4 @@ def allo():
 
 
 if __name__ == "__main__":
-    # vlille_pubsub('data', 'context')
-    
-    allo()
+    vlille_pubsub('data', 'context')
