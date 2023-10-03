@@ -1,125 +1,19 @@
-[
-  {
-    "name": "nhits",
-    "type": "INTEGER"
-  },
-  {
-    "name": "parameters",
-    "type": "RECORD",
-    "mode": "NULLABLE",
-    "fields": [
-      {
-        "name": "dataset",
-        "type": "STRING"
-      },
-      {
-        "name": "rows",
-        "type": "INTEGER"
-      },
-      {
-        "name": "start",
-        "type": "INTEGER"
-      },
-      {
-        "name": "format",
-        "type": "STRING"
-      },
-      {
-        "name": "timezone",
-        "type": "STRING"
-      }
-    ]
-  },
-  {
-    "name": "records",
-    "type": "RECORD",
-    "mode": "REPEATED",
-    "fields": [
-      {
-        "name": "datasetid",
-        "type": "STRING"
-      },
-      {
-        "name": "recordid",
-        "type": "STRING"
-      },
-      {
-        "name": "fields",
-        "type": "RECORD",
-        "mode": "NULLABLE",
-        "fields": [
-          {
-            "name": "nbvelosdispo",
-            "type": "INTEGER"
-          },
-          {
-            "name": "nbplacesdispo",
-            "type": "INTEGER"
-          },
-          {
-            "name": "libelle",
-            "type": "INTEGER"
-          },
-          {
-            "name": "adresse",
-            "type": "STRING"
-          },
-          {
-            "name": "nom",
-            "type": "STRING"
-          },
-          {
-            "name": "etat",
-            "type": "STRING"
-          },
-          {
-            "name": "commune",
-            "type": "STRING"
-          },
-          {
-            "name": "etatconnexion",
-            "type": "STRING"
-          },
-          {
-            "name": "type",
-            "type": "STRING"
-          },
-          {
-            "name": "geo",
-            "type": "FLOAT",
-            "mode": "REPEATED"
-          },
-          {
-            "name": "localisation",
-            "type": "FLOAT",
-            "mode": "REPEATED"
-          },
-          {
-            "name": "datemiseajour",
-            "type": "TIMESTAMP"
-          }
-        ]
-      },
-      {
-        "name": "geometry",
-        "type": "RECORD",
-        "mode": "NULLABLE",
-        "fields": [
-          {
-            "name": "type",
-            "type": "STRING"
-          },
-          {
-            "name": "coordinates",
-            "type": "FLOAT",
-            "mode": "REPEATED"
-          }
-        ]
-      },
-      {
-        "name": "record_timestamp",
-        "type": "TIMESTAMP"
-      }
-    ]
+{
+  "schema": {
+      "fields": [
+          {"name": "nom", "type": "STRING"},
+          {"name": "libelle", "type": "STRING"},
+          {"name": "adresse", "type": "STRING"},
+          {"name": "commune", "type": "STRING"},
+          {"name": "type", "type": "STRING"},
+          {"name": "latitude", "type": "FLOAT"},
+          {"name": "longitude", "type": "FLOAT"},
+          {"name": "etat", "type": "STRING"},
+          {"name": "nb_velos_dispo", "type": "INTEGER"},
+          {"name": "nb_places_dispo", "type": "INTEGER"},
+          {"name": "etat_connexion", "type": "STRING"},
+          {"name": "derniere_maj", "type": "TIMESTAMP"},
+          {"name": "record_timestamp", "type": "TIMESTAMP"}
+      ]
   }
-]
+}

@@ -40,3 +40,4 @@ FROM `vlille_dataset.vlille_table_direct_from_bq`,
     UNNEST(records) AS r
 ORDER BY r.fields.libelle DESC;
 
+

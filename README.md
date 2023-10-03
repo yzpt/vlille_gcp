@@ -17,29 +17,36 @@ Créer un projet sur GCP après s'être authentifié sur google DSK cli
 
 ```sh 
 # Création d'un nouveau projet gcloud
-gcloud projects create vlille
+gcloud projects create vlille-gcp
 
 # Liste des projets
 gcloud projects list
 
 # Activation du projet
-gcloud config set project vlille-396911
+gcloud config set project vlille-gcp
 
 # Création d'un compte de service
-gcloud iam service-accounts create vlille
+gcloud iam service-accounts create admin-vlille-gcp
 
 # Liste des comptes de services
 gcloud iam service-accounts list
-# vlille@vlille-396911.iam.gserviceaccount.com
+# admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com
 
 # Attribution des droits (bigquery admin) au compte de service
-gcloud projects add-iam-policy-binding vlille-396911 --member="serviceAccount:vlille@vlille-396911.iam.gserviceaccount.com" --role="roles/bigquery.admin"
+gcloud projects add-iam-policy-binding vlille-gcp --member="serviceAccount:admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com" --role="roles/bigquery.admin"
 
 # Attribution des droits (storage admin) au compte de service
-gcloud projects add-iam-policy-binding vlille-396911 --member="serviceAccount:vlille@vlille-396911.iam.gserviceaccount.com" --role="roles/storage.admin"
+gcloud projects add-iam-policy-binding vlille-gcp --member="serviceAccount:admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com" --role="roles/storage.admin"
 
 # Création d'une clé pour le compte de service
-gcloud iam service-accounts keys create key-vlille.json --iam-account=vlille@vlille-396911.iam.gserviceaccount.com
+gcloud iam service-accounts keys create key-vlille-gcp.json --iam-account=admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com
+
+# Attribution du compte de facturation au projet
+gcloud alpha billing accounts list
+# ACCOUNT_ID            NAME                       OPEN  MASTER_ACCOUNT_ID
+# 012A63-E71939-70F754  Mon compte de facturation  True
+gcloud alpha billing projects link vlille-gcp --billing-account=012A63-E71939-70F754
+
 ```
 
 ## 2. Collecte et stockage des données de l'API (Functions, Pub/Sub, Scheduler), BigQuery
@@ -53,118 +60,49 @@ gcloud services enable cloudfunctions.googleapis.com
 gcloud services enable pubsub.googleapis.com
 
 # Création du bucket GCS de récolte des données
-gcloud storage buckets create gs://vlille_data_json
+gcloud storage buckets create gs://vlille_gcp_data
 # Création du bucket GCS de stockage de la fonction
-gcloud storage buckets create gs://fct_yzpt 
+gcloud storage buckets create gs://vlille_gcp_bucket
 ```
 
 Edition du schema au format json pour bigquery
 <details>
-    <summary>json_list_schema.json</summary>
-    
+    <summary>json_list_data_schema.json</summary>
+
 ```json
-[{
-    "name": "datasetid",
-    "type": "STRING"
-},
-{
-    "name": "recordid",
-    "type": "STRING"
-},
-{
-    "name": "fields",
-    "type": "RECORD",
-    "mode": "NULLABLE",
-    "fields": [
-    {
-        "name": "nbvelosdispo",
-        "type": "INTEGER"
-    },
-    {
-        "name": "nbplacesdispo",
-        "type": "INTEGER"
-    },
-    {
-        "name": "libelle",
-        "type": "INTEGER"
-    },
-    {
-        "name": "adresse",
-        "type": "STRING"
-    },
-    {
-        "name": "nom",
-        "type": "STRING"
-    },
-    {
-        "name": "etat",
-        "type": "STRING"
-    },
-    {
-        "name": "commune",
-        "type": "STRING"
-    },
-    {
-        "name": "etatconnexion",
-        "type": "STRING"
-    },
-    {
-        "name": "type",
-        "type": "STRING"
-    },
-    {
-        "name": "geo",
-        "type": "FLOAT",
-        "mode": "REPEATED"
-    },
-    {
-        "name": "localisation",
-        "type": "FLOAT",
-        "mode": "REPEATED"
-    },
-    {
-        "name": "datemiseajour",
-        "type": "TIMESTAMP"
-    }
-    ]
-},
-{
-    "name": "geometry",
-    "type": "RECORD",
-    "mode": "NULLABLE",
-    "fields": [
-    {
-        "name": "type",
-        "type": "STRING"
-    },
-    {
-        "name": "coordinates",
-        "type": "FLOAT",
-        "mode": "REPEATED"
-    }
-    ]
-},
-{
-    "name": "record_timestamp",
-    "type": "TIMESTAMP"
-}]
+[
+    {"name": "nom", "type": "STRING"},
+    {"name": "libelle", "type": "STRING"},
+    {"name": "adresse", "type": "STRING"},
+    {"name": "commune", "type": "STRING"},
+    {"name": "type", "type": "STRING"},
+    {"name": "latitude", "type": "FLOAT"},
+    {"name": "longitude", "type": "FLOAT"},
+    {"name": "etat", "type": "STRING"},
+    {"name": "nb_velos_dispo", "type": "INTEGER"},
+    {"name": "nb_places_dispo", "type": "INTEGER"},
+    {"name": "etat_connexion", "type": "STRING"},
+    {"name": "derniere_maj", "type": "TIMESTAMP"},
+    {"name": "record_timestamp", "type": "TIMESTAMP"}
+]
+
 ```
 
 </details><br>
 
 ```sh
 # Création d'un dataset BigQuery
-bq mk vlille_dataset 
-# Dataset 'vlille-396911:vlille_dataset' successfully created.
+bq mk vlille_gcp_dataset 
+# Dataset 'vlille-gcp:vlille_gcp_dataset' successfully created.
 
 # Création d'une table BigQuery avec le schema json
-bq mk --table vlille_dataset.vlille_table json_list_schema.json
+bq mk --table vlille_gcp_dataset.records json_list_data_schema.json
 ```
 
 ### 2.1. Cloud Function : contenu et transfert du script
 
-cf_get_data_and_store_to_gcs/<br>
-├── key-vlille.json<br>
+function/<br>
+├── key-vlille-gcp.json<br>
 ├── requirements.txt<br>
 └── main.py
 

@@ -649,3 +649,9 @@ git push vlille_gcp master
 
 
 # =============  FLASK & BIGQUERY DASHBOARD ===================
+
+
+# ============= Refonte pour clean ============================
+# branch refonte
+git checkout -b refonte
+# --> readme.md
