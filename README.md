@@ -64,41 +64,10 @@ gcloud services enable cloudscheduler.googleapis.com
 gcloud storage buckets create gs://vlille_gcp_data
 # Création du bucket GCS de stockage de la fonction
 gcloud storage buckets create gs://vlille_gcp_bucket
-```
 
-Edition du schema au format json pour bigquery
-<details>
-    <summary>json_list_data_schema.json</summary>
-
-```json
-[
-    {"name": "nom", "type": "STRING"},
-    {"name": "libelle", "type": "STRING"},
-    {"name": "adresse", "type": "STRING"},
-    {"name": "commune", "type": "STRING"},
-    {"name": "type", "type": "STRING"},
-    {"name": "latitude", "type": "FLOAT"},
-    {"name": "longitude", "type": "FLOAT"},
-    {"name": "etat", "type": "STRING"},
-    {"name": "nb_velos_dispo", "type": "INTEGER"},
-    {"name": "nb_places_dispo", "type": "INTEGER"},
-    {"name": "etat_connexion", "type": "STRING"},
-    {"name": "derniere_maj", "type": "TIMESTAMP"},
-    {"name": "record_timestamp", "type": "TIMESTAMP"}
-]
-
-```
-
-</details><br>
-
-```sh
 # Création d'un dataset BigQuery
 bq mk vlille_gcp_dataset 
 # Dataset 'vlille-gcp:vlille_gcp_dataset' successfully created.
-
-# delete a bigquery table, autoconfirm
-bq rm -f vlille_gcp_dataset.stations 
-bq rm -f vlille_gcp_dataset.records
 ```
 
 Création des tables BigQuery
@@ -131,10 +100,39 @@ Création des tables BigQuery
 
 * Ou gcloud CLI :
 
-    ```sh
-    bq mk --schema id:INT64,nom:STRING,libelle:STRING,adresse:STRING,commune:STRING,type:STRING,latitude:FLOAT64,longitude:FLOAT64 --table vlille_gcp_dataset.stations
+    On définit les schémas des tables :
 
-    bq mk --schema station_id:INT64,etat:STRING,nb_velos_dispo:INT64,nb_places_dispo:INT64,etat_connexion:STRING,derniere_maj:TIMESTAMP,record_timestamp:TIMESTAMP --table vlille_gcp_dataset.records
+    ```javascript
+    // json_list_schema_stations.json
+    [
+        {"name": "id",       "type": "INT64"},
+        {"name": "nom",      "type": "STRING"},
+        {"name": "libelle",  "type": "STRING"},
+        {"name": "adresse",  "type": "STRING"},
+        {"name": "commune",  "type": "STRING"},
+        {"name": "type",     "type": "STRING"},
+        {"name": "latitude", "type": "FLOAT64"},
+        {"name": "longitude","type": "FLOAT64"}
+    ]
+
+    // json_list_schema_records.json
+    [
+        {"name": "station_id",       "type": "INT64"},
+        {"name": "etat",             "type": "STRING"},
+        {"name": "nb_velos_dispo",   "type": "INT64"},
+        {"name": "nb_places_dispo",  "type": "INT64"},
+        {"name": "etat_connexion",   "type": "STRING"},
+        {"name": "derniere_maj",     "type": "TIMESTAMP"},
+        {"name": "record_timestamp", "type": "TIMESTAMP"}
+    ]
+    ```
+
+    Création des tables :
+
+    ```sh
+    bq mk --table vlille_gcp_dataset.stations json_list_schema_stations.json
+
+    bq mk --table vlille_gcp_dataset.records json_list_schema_records.json
     ```
 
 * Ou Python client, plus pratique ensuite pour alimenter une fois la table stations :
@@ -359,6 +357,113 @@ gcloud functions logs read vlille_scheduled_function --region=europe-west1
 ## === ok l'insert realtime dans bigquery est propre 
 
 go transférer les données json récoltées depuis le 24 août dans les tables propres
+
+## 3. Insert raw data in BigQuery table from json files on a GCS bucket
+
+From the august 25th, the data are collected in a GCS bucket without transformation (almost raw json format as provided by the V'Lille API). We need to insert these data in the BigQuery table vlille_gcp:vlille_gcp_dataset.records
+
+Scheme of the raw data :
+
+* json_list_schema_raw_data.json
+
+```javascript
+[
+    {"name": "nhits",    "type": "INTEGER"},
+    {"name": "parameters",    "type": "RECORD",    "mode": "NULLABLE",    "fields": [
+        {"name": "dataset",        "type": "STRING"},
+        {"name": "timezone",        "type": "STRING"},
+        {"name": "rows",        "type": "INTEGER"},
+        {"name": "format",        "type": "STRING"},
+        {"name": "start",        "type": "INTEGER"}
+    ]},
+    {"name": "records",    "type": "RECORD",    "mode": "REPEATED",    "fields": [
+        {"name": "recordid",        "type": "STRING"},
+        {"name": "fields",        "type": "RECORD",        "mode": "NULLABLE",        "fields": [
+            {"name": "etatconnexion",            "type": "STRING"},
+            {"name": "nbplacesdispo",            "type": "INTEGER"},
+            {"name": "libelle",            "type": "STRING"},
+            {"name": "geo",            "type": "FLOAT",            "mode": "REPEATED"},
+            {"name": "etat",            "type": "STRING"},
+            {"name": "datemiseajour",            "type": "TIMESTAMP"},
+            {"name": "nbvelosdispo",            "type": "INTEGER"},
+            {"name": "adresse",            "type": "STRING"},
+            {"name": "localisation",            "type": "FLOAT",            "mode": "REPEATED"},
+            {"name": "type",            "type": "STRING"},
+            {"name": "nom",            "type": "STRING"},
+            {"name": "commune",            "type": "STRING"}
+        ]},
+        {"name": "record_timestamp",        "type": "TIMESTAMP"},
+        {"name": "datasetid",        "type": "STRING"},
+        {"name": "geometry",        "type": "RECORD",        "mode": "NULLABLE",        "fields": [
+            {"name": "type",            "type": "STRING"},
+            {"name": "coordinates",            "type": "FLOAT",            "mode": "REPEATED"}
+        ]}
+    ]}
+]
+```
+
+```sh
+# GCS bucket with raw files:    gs://vlille_data_json
+
+# Temporary raw table creation :
+bq mk --table vlille_gcp_dataset.raw_records json_list_schema_raw_data.json
+
+# load raw data from GCS bucket to BigQuery table
+bq load --source_format=NEWLINE_DELIMITED_JSON vlille_gcp_dataset.raw_records gs://vlille_data_json/*.json json_list_schema_raw_data.json
+```
+
+Query to transform the raw data in the BigQuery table vlille_gcp_dataset.raw_records to the BigQuery table vlille_gcp_dataset.records_from_raw :
+
+```SQL
+CREATE OR REPLACE TABLE `vlille-gcp.vlille_gcp_dataset.records_from_raw` AS
+WITH transformed_data AS (
+  SELECT
+    CAST(records.fields.libelle AS INT64) AS station_id,
+    records.fields.etat AS etat,
+    records.fields.nbvelosdispo AS nb_velos_dispo,
+    records.fields.nbplacesdispo AS nb_places_dispo,
+    records.fields.etatconnexion AS etat_connexion,
+    TIMESTAMP(records.fields.datemiseajour) AS derniere_maj,
+    TIMESTAMP(records.record_timestamp) AS record_timestamp
+  FROM
+    `vlille-gcp.vlille_gcp_dataset.raw_records`, UNNEST(records) AS records
+)
+SELECT * FROM transformed_data;
+
+
+-- Query to remove all datas with: 
+--     record_timestamp < 2021-08-25  (for clean data)
+--     and record_timestamp >= 2021-10-04 (because the scheduled function started on the 2023-10-03's evening)
+
+DELETE FROM `vlille-gcp.vlille_gcp_dataset.records_from_raw`
+WHERE record_timestamp < TIMESTAMP('2023-08-25 00:00:00') OR record_timestamp >= TIMESTAMP('2023-10-04 00:00:00')
+
+
+-- copy all rows from the temporary table records_from_raw to the table records
+INSERT INTO `vlille-gcp.vlille_gcp_dataset.records` (station_id, etat, nb_velos_dispo, nb_places_dispo, etat_connexion, derniere_maj, record_timestamp)
+SELECT * FROM `vlille-gcp.vlille_gcp_dataset.records_from_raw`
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## 3. Docker Container + Cloud Run
 

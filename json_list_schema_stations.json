@@ -1,0 +1,10 @@
+[
+    {"name": "id",       "type": "INT64"},
+    {"name": "nom",      "type": "STRING"},
+    {"name": "libelle",  "type": "STRING"},
+    {"name": "adresse",  "type": "STRING"},
+    {"name": "commune",  "type": "STRING"},
+    {"name": "type",     "type": "STRING"},
+    {"name": "latitude", "type": "FLOAT64"},
+    {"name": "longitude","type": "FLOAT64"}
+]

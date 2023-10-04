@@ -1,0 +1,33 @@
+[
+    {"name": "nhits",    "type": "INTEGER"},
+    {"name": "parameters",    "type": "RECORD",    "mode": "NULLABLE",    "fields": [
+        {"name": "dataset",        "type": "STRING"},
+        {"name": "timezone",        "type": "STRING"},
+        {"name": "rows",        "type": "INTEGER"},
+        {"name": "format",        "type": "STRING"},
+        {"name": "start",        "type": "INTEGER"}
+    ]},
+    {"name": "records",    "type": "RECORD",    "mode": "REPEATED",    "fields": [
+        {"name": "recordid",        "type": "STRING"},
+        {"name": "fields",        "type": "RECORD",        "mode": "NULLABLE",        "fields": [
+            {"name": "etatconnexion",            "type": "STRING"},
+            {"name": "nbplacesdispo",            "type": "INTEGER"},
+            {"name": "libelle",            "type": "STRING"},
+            {"name": "geo",            "type": "FLOAT",            "mode": "REPEATED"},
+            {"name": "etat",            "type": "STRING"},
+            {"name": "datemiseajour",            "type": "TIMESTAMP"},
+            {"name": "nbvelosdispo",            "type": "INTEGER"},
+            {"name": "adresse",            "type": "STRING"},
+            {"name": "localisation",            "type": "FLOAT",            "mode": "REPEATED"},
+            {"name": "type",            "type": "STRING"},
+            {"name": "nom",            "type": "STRING"},
+            {"name": "commune",            "type": "STRING"}
+        ]},
+        {"name": "record_timestamp",        "type": "TIMESTAMP"},
+        {"name": "datasetid",        "type": "STRING"},
+        {"name": "geometry",        "type": "RECORD",        "mode": "NULLABLE",        "fields": [
+            {"name": "type",            "type": "STRING"},
+            {"name": "coordinates",            "type": "FLOAT",            "mode": "REPEATED"}
+        ]}
+    ]}
+]
