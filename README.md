@@ -442,7 +442,16 @@ WHERE record_timestamp < TIMESTAMP('2023-08-25 00:00:00') OR record_timestamp >=
 -- copy all rows from the temporary table records_from_raw to the table records
 INSERT INTO `vlille-gcp.vlille_gcp_dataset.records` (station_id, etat, nb_velos_dispo, nb_places_dispo, etat_connexion, derniere_maj, record_timestamp)
 SELECT * FROM `vlille-gcp.vlille_gcp_dataset.records_from_raw`
+
+-- check wrong rows :
+SELECT record_timestamp, COUNT( DISTINCT station_id ) AS nb
+  FROM `vlille-gcp.vlille_gcp_dataset.records`
+  WHERE DATE(record_timestamp) >= '2023-08-25'
+  GROUP BY record_timestamp
+  ORDER BY nb ASC;
+
 ```
+
 
 
 

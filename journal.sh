@@ -655,3 +655,10 @@ git push vlille_gcp master
 # branch refonte
 git checkout -b refonte
 # --> readme.md
+
+# data clean, check the table :
+
+# bq copy a bigquery table
+bq cp vlille_gcp_dataset.records vlille_gcp_dataset.records_copy
+
+
