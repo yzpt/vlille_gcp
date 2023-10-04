@@ -4,6 +4,7 @@ python-storage/
 zips/
 va/
 venv_2/
+venv_dashboard/
 
 key-vlille.json
 key-vlille-gcp.json

@@ -446,7 +446,7 @@ SELECT * FROM `vlille-gcp.vlille_gcp_dataset.records_from_raw`
 -- check wrong rows :
 SELECT record_timestamp, COUNT( DISTINCT station_id ) AS nb
   FROM `vlille-gcp.vlille_gcp_dataset.records`
-  WHERE DATE(record_timestamp) >= '2023-08-25'
+  WHERE DATE(record_timestamp) = '2023-09-10'
   GROUP BY record_timestamp
   ORDER BY nb ASC;
 

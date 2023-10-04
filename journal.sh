@@ -648,9 +648,6 @@ git push vlille_gcp master
 
 
 
-# =============  FLASK & BIGQUERY DASHBOARD ===================
-
-
 # ============= Refonte pour clean ============================
 # branch refonte
 git checkout -b refonte
@@ -662,3 +659,5 @@ git checkout -b refonte
 bq cp vlille_gcp_dataset.records vlille_gcp_dataset.records_copy
 
 
+# add du folder dashboard
+# --> refonder le dashboard sur le nouveau projet/dataset

@@ -1,0 +1,16 @@
+#map {
+    height: 40vh;
+    width: 100%;
+}
+
+#dashboard {
+    padding-top: 3vh;
+}
+
+.text-orange {
+    color: #ff9800;
+}
+
+.hidden {
+    display: none!important;
+}
