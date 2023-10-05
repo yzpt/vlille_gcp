@@ -41,6 +41,7 @@ def index():
                             # dernieres_transactions = dernieres_transactions,
                             timeline_sum = timeline_sum,
                             stations_vides = stations_vides,
+                            todays_transactions_count = todays_transactions_count(),
                             GOOGLE_MAPS_API_KEY = GOOGLE_MAPS_API_KEY
                            )
 
@@ -68,6 +69,7 @@ def get_realtime_data(station_libelle=None):
         station["nb_places_dispo"] = record["fields"]["nbplacesdispo"]
         station["etat_connexion"] = record["fields"]["etatconnexion"]
         station["derniere_maj"] = record["fields"]["datemiseajour"]
+        station["record_timestamp"] = record["record_timestamp"]
         data.append(station)
     
     return data
@@ -87,12 +89,12 @@ def get_station_infos(station_libelle):
 def get_timeline_nbvelos(station_libelle, nb_days_ago):
 
     # Get the current date and time
-    date_inf = datetime.utcnow - timedelta(hours=24*int(nb_days_ago))
+    date_inf = datetime.utcnow() - timedelta(hours=24*int(nb_days_ago))
     query = f"""
-            SELECT station_id, nbvelosdispo, record_timestamp
-            FROM `vlille-gcp.vlille_gcp_dataset.records
+            SELECT station_id, nb_velos_dispo, record_timestamp
+            FROM `vlille-gcp.vlille_gcp_dataset.records`
             WHERE 
-                datemiseajour >= TIMESTAMP('{date_inf}')
+                record_timestamp >= TIMESTAMP('{date_inf}')
             AND station_id = {station_libelle}
             ORDER BY record_timestamp
             """
@@ -102,7 +104,7 @@ def get_timeline_nbvelos(station_libelle, nb_days_ago):
     results = query_job.result()
 
     # Process and return the results as needed
-    data = [(row.record_timestamp, row.nbvelosdispo) for row in results]
+    data = [(row.record_timestamp, row.nb_velos_dispo) for row in results]
     response_data = {
         'labels': [row[0] for row in data],
         'values': [row[1] for row in data]
@@ -110,20 +112,6 @@ def get_timeline_nbvelos(station_libelle, nb_days_ago):
     return jsonify(response_data)
 
 
-
-def get_transactions():
-   # bigquery query that list all the transactions in a table (schéma : date datetime, nom string, libelle int, value int):
-    # query = f"""
-    #        ...
-    #         """
-    # Run the BigQuery query
-    # query_job = client.query(query)
-    # results = query_job.result()
-
-    # Process and return the results as needed
-    # data = [(row.hour_of_day, row.sum_positive_transactions, row.sum_negative_transactions, row.transactions_count) for row in results]
-    response_data = {}
-    return response_data
 
 @app.route('/get_timeline_sum', methods=['GET'])
 def sum_velos_dispos_last_24h():
@@ -175,8 +163,8 @@ def get_stations_pleines():
 @app.route('/get_avg_bars/<libelle>/<week_day>', methods=['GET'])
 def get_avg_bars(libelle, week_day):
     # Define the start and end dates
-    start_date  = datetime.datetime(2023, 8, 25)
-    end_date    = datetime.datetime.utcnow()
+    start_date  = datetime(2023, 8, 25)
+    end_date    = datetime.utcnow()
 
     # Create a list of days of the week in order
     days_of_week = {'Dimanche': 1, 'Lundi': 2, 'Mardi': 3, 'Mercredi': 4, 'Jeudi': 5, 'Vendredi': 6, 'Samedi': 7}
@@ -186,13 +174,13 @@ def get_avg_bars(libelle, week_day):
     query = f"""
     SELECT
         EXTRACT(HOUR FROM record_timestamp) AS hour_of_day,
-        AVG(nbvelosdispo) AS avg_nbvelosdispo
+        AVG(nb_velos_dispo) AS avg_nb_velos_dispo
     FROM
-        FROM `vlille-gcp.vlille_gcp_dataset.records`
+        `vlille-gcp.vlille_gcp_dataset.records`
     WHERE
         record_timestamp >= TIMESTAMP('{start_date.date()}')
         AND record_timestamp < TIMESTAMP('{end_date.date()}')
-        AND libelle = {libelle}
+        AND station_id = {libelle}
         AND EXTRACT(DAYOFWEEK FROM record_timestamp) = {day_index}
     GROUP BY
         hour_of_day
@@ -203,18 +191,18 @@ def get_avg_bars(libelle, week_day):
     # Run the BigQuery query
     query_job = client.query(query)
     results = query_job.result()
-
-    data = [(row.hour_of_day, row.avg_nbvelosdispo) for row in results]
+    data = [(row.hour_of_day, row.avg_nb_velos_dispo) for row in results]
     response_data = {
         'labels': [row[0] for row in data],
         'values': [row[1] for row in data]
     }
-
     return response_data
+
 
 
 @app.route('/get_transactions_count', methods=['GET'])
 def transactions_count():
+    today = datetime.utcnow()
     query = f"""
               WITH RankedTransactions AS (
                 SELECT
@@ -224,14 +212,13 @@ def transactions_count():
                 FROM
                   `vlille-gcp.vlille_gcp_dataset.transactions_test`
                 WHERE
-                  DATE(date) = '2023-09-04'
+                  DATE(date) = '{today.strftime('%Y-%m-%d')}'
               )
 
               SELECT
                 hour_of_day,
                 SUM(IF(transaction_value > 0, transaction_value, 0)) AS sum_positive_transactions,
                 SUM(IF(transaction_value < 0, - transaction_value, 0)) AS sum_negative_transactions,
-                COUNT(transaction_value) AS transactions_count
               FROM
                 RankedTransactions
               GROUP BY
@@ -245,25 +232,37 @@ def transactions_count():
     results = query_job.result()
 
     # Process and return the results as needed
-    data = [(row.hour_of_day, row.sum_positive_transactions, row.sum_negative_transactions, row.transactions_count) for row in results]
+    data = [(row.hour_of_day, row.sum_positive_transactions, row.sum_negative_transactions) for row in results]
+    while len(data) < 24:
+        data.append((len(data), 0, 0, 0))
+      
     response_data = {
         'labels': [row[0] for row in data],
         'values': [row[1] for row in data],
-        'values2': [row[2] for row in data],
-        'values3': [row[3] for row in data]
+        'values2': [row[2] for row in data]
     }
     return (response_data)
+
+
+def todays_transactions_count():
+    data = transactions_count()
+    sum = 0
+    for i in range(0, len(data['values'])):
+        sum += data['values'][i] + data['values2'][i]
+    return sum
+
 
 
 
 @app.route('/get_nbvelosdispo', methods=['GET'])
 def sum_nbvelosdispo():
-    date_inf = datetime.utcnow() - timedelta(hours = 24)
+    # get the today date without the hours
+    today = datetime.utcnow().date()
     query = f"""
             SELECT record_timestamp, sum(nb_velos_dispo) AS total_velos
             FROM `vlille-gcp.vlille_gcp_dataset.records`
             WHERE 
-                DATE(record_timestamp) >= '{date_inf.strftime('%Y-%m-%d')}'
+                DATE(record_timestamp) >= '{today}'
             GROUP BY record_timestamp
                 HAVING total_velos > 1500 AND total_velos < 2300
             ORDER BY record_timestamp ASC;
@@ -276,6 +275,8 @@ def sum_nbvelosdispo():
     # Process and return the results as needed
     # data = [(row.datemiseajour, row.total_nbvelosdispo) for row in results]
     data = [(row.record_timestamp, row.total_velos) for row in results if row.total_velos > 1500 and row.total_velos < 2300]
+    while len(data) < 1440:
+        data.append((len(data), None))
     response_data = {
         'labels': [row[0] for row in data],
         'values': [row[1] for row in data]

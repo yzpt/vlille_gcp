@@ -24,14 +24,20 @@ function displaySumNbVelosDispo(labels, values) {
             scales: {
                 x: {
                     ticks: {
-                        display: true,
-                        callback: function(value, index) {
-                            if (index % 100 === 0) {
-                                const date = new Date(this.getLabelForValue(value));
-                                const hour = String(date.getHours()).padStart(2, '0');
-                                return `${hour} h`;
+                        callback: function(value, index, values) {
+                            if ((value % 180 === 0) || (index === value.length - 1)) {
+                                const hours = Math.floor(value / 60);
+                                const minutes = value % 60;
+                                const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
+                                if (value % 180 === 0) {
+                                    return `${formattedHours}h`;
+                                } else if (index === value.length - 1) {
+                                    const formattedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
+                                    return `${formattedHours}h ${formattedMinutes}`;
+                                }
                             }
-                        }
+                        },
+                        maxRotation: 0
                     },
                     grid: {
                         display: false,
