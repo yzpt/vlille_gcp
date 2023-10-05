@@ -219,11 +219,27 @@ FROM your_dataset.your_table
 GROUP BY datemiseajour
 ORDER BY datemiseajour;
 ------------------------------------------------------
+WITH RankedTransactions AS (
+  SELECT
+    station_id,
+    EXTRACT(HOUR FROM date) AS hour_of_day,
+    transaction_value
+  FROM
+    `vlille-gcp.vlille_gcp_dataset.transactions_test`
+  WHERE
+    DATE(date) >= '2023-08-25'
+)
 
-SELECT record_timestamp, sum(nb_velos_dispo) AS total_velos
-  FROM `vlille-gcp.vlille_gcp_dataset.records`
-  WHERE 
-    DATE(record_timestamp) >= '2023-08-25'
-  GROUP BY record_timestamp
-    HAVING total_velos > 1500 AND total_velos < 2300
-  ORDER BY record_timestamp ASC;
+SELECT
+  hour_of_day,
+  SUM(IF(transaction_value > 0, transaction_value, 0)) AS sum_positive_transactions,
+  SUM(IF(transaction_value < 0, - transaction_value, 0)) AS sum_negative_transactions,
+  COUNT(transaction_value) AS transactions_count
+FROM
+  RankedTransactions
+GROUP BY
+  hour_of_day
+ORDER BY
+  hour_of_day;
+  ------------------------------------------------------
+  

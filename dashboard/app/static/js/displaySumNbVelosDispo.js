@@ -27,7 +27,9 @@ function displaySumNbVelosDispo(labels, values) {
                         display: true,
                         callback: function(value, index) {
                             if (index % 100 === 0) {
-                                return value;
+                                const date = new Date(this.getLabelForValue(value));
+                                const hour = String(date.getHours()).padStart(2, '0');
+                                return `${hour} h`;
                             }
                         }
                     },

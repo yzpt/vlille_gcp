@@ -111,45 +111,19 @@ def get_timeline_nbvelos(station_libelle, nb_days_ago):
 
 
 
-# def get_transactions():
-#    # bigquery query that list all the transactions in a table (schéma : date datetime, nom string, libelle int, value int):
-#     query = f"""
-#             WITH RankedTransactions AS (
-#             SELECT
-#                 nom,
-#                 datemiseajour AS date,
-#                 nbvelosdispo AS nbvelosdispo_current,
-#                 LAG(nbvelosdispo, 1) OVER (PARTITION BY nom ORDER BY datemiseajour) AS nbvelosdispo_previous
-#             FROM
-#                 `vlille-396911.flask_dataset.data_rm_duplicate`
-            
-#             WHERE datemiseajour >= '2023-09-06' and datemiseajour <'2023-09-07' 
-#             )
+def get_transactions():
+   # bigquery query that list all the transactions in a table (schéma : date datetime, nom string, libelle int, value int):
+    # query = f"""
+    #        ...
+    #         """
+    # Run the BigQuery query
+    # query_job = client.query(query)
+    # results = query_job.result()
 
-#             SELECT
-#                 nom,
-#                 date,
-#                 IFNULL(nbvelosdispo_previous, 0) - nbvelosdispo_current AS transaction_value
-#             FROM
-#                 RankedTransactions
-#             WHERE
-#                 nbvelosdispo_previous IS NOT NULL
-#                 and (IFNULL(nbvelosdispo_previous, 0) - nbvelosdispo_current) <> 0
-#             ORDER BY
-#                 date DESC
-#             LIMIT 5
-#             """
-#     # Run the BigQuery query
-#     query_job = client.query(query)
-#     results = query_job.result()
-
-#     # Process and return the results as needed
-#     data = [{
-#                 "date": row.date.strftime("%Y-%m-%d %H:%M:%S"),
-#                 "nom": row.nom,
-#                 "value": row.transaction_value if row.transaction_value < 0 else "+" + str(row.transaction_value)
-#             } for row in results]
-#     return data
+    # Process and return the results as needed
+    # data = [(row.hour_of_day, row.sum_positive_transactions, row.sum_negative_transactions, row.transactions_count) for row in results]
+    response_data = {}
+    return response_data
 
 @app.route('/get_timeline_sum', methods=['GET'])
 def sum_velos_dispos_last_24h():
@@ -169,7 +143,7 @@ def sum_velos_dispos_last_24h():
     results = query_job.result()
 
     # Process and return the results as needed
-    data = [(row.record_timestamp, row.somme_velos) for row in results]
+    data = [(row.record_timestamp, row.total_velos) for row in results]
     response_data = {
         'labels': [row[0] for row in data],
         'values': [row[1] for row in data]
@@ -239,56 +213,57 @@ def get_avg_bars(libelle, week_day):
     return response_data
 
 
-# @app.route('/get_transactions_count', methods=['GET'])
-# def transactions_count():
-#     query = f"""
-#               WITH RankedTransactions AS (
-#                 SELECT
-#                   nom,
-#                   libelle,
-#                   EXTRACT(HOUR FROM date) AS hour_of_day,
-#                   transaction_value
-#                 FROM
-#                   `vlille-396911.flask_dataset.transactions_test`
-#                 WHERE
-#                   DATE(date) = '2023-09-12'
-#               )
+@app.route('/get_transactions_count', methods=['GET'])
+def transactions_count():
+    query = f"""
+              WITH RankedTransactions AS (
+                SELECT
+                  station_id,
+                  EXTRACT(HOUR FROM date) AS hour_of_day,
+                  transaction_value
+                FROM
+                  `vlille-gcp.vlille_gcp_dataset.transactions_test`
+                WHERE
+                  DATE(date) = '2023-09-04'
+              )
 
-#               SELECT
-#                 hour_of_day,
-#                 SUM(IF(transaction_value > 0, transaction_value, 0)) AS sum_positive_transactions,
-#                 SUM(IF(transaction_value < 0, - transaction_value, 0)) AS sum_negative_transactions
-#               FROM
-#                 RankedTransactions
-#               GROUP BY
-#                 hour_of_day
-#               ORDER BY
-#                 hour_of_day;
-#             """
+              SELECT
+                hour_of_day,
+                SUM(IF(transaction_value > 0, transaction_value, 0)) AS sum_positive_transactions,
+                SUM(IF(transaction_value < 0, - transaction_value, 0)) AS sum_negative_transactions,
+                COUNT(transaction_value) AS transactions_count
+              FROM
+                RankedTransactions
+              GROUP BY
+                hour_of_day
+              ORDER BY
+                hour_of_day;
+            """
     
-#     # Run the BigQuery query
-#     query_job = client.query(query)
-#     results = query_job.result()
+    # Run the BigQuery query
+    query_job = client.query(query)
+    results = query_job.result()
 
-#     # Process and return the results as needed
-#     data = [(row.hour_of_day, row.sum_positive_transactions, row.sum_negative_transactions) for row in results]
-#     response_data = {
-#         'labels': [row[0] for row in data],
-#         'values': [row[1] for row in data],
-#         'values2': [row[2] for row in data]
-#     }
-#     return response_data
+    # Process and return the results as needed
+    data = [(row.hour_of_day, row.sum_positive_transactions, row.sum_negative_transactions, row.transactions_count) for row in results]
+    response_data = {
+        'labels': [row[0] for row in data],
+        'values': [row[1] for row in data],
+        'values2': [row[2] for row in data],
+        'values3': [row[3] for row in data]
+    }
+    return (response_data)
 
 
 
 @app.route('/get_nbvelosdispo', methods=['GET'])
 def sum_nbvelosdispo():
-    date_inf = datetime.datetime.utcnow() - timedelta(hours = 24)
+    date_inf = datetime.utcnow() - timedelta(hours = 24)
     query = f"""
             SELECT record_timestamp, sum(nb_velos_dispo) AS total_velos
             FROM `vlille-gcp.vlille_gcp_dataset.records`
             WHERE 
-                DATE(record_timestamp) >= '{date_inf}'
+                DATE(record_timestamp) >= '{date_inf.strftime('%Y-%m-%d')}'
             GROUP BY record_timestamp
                 HAVING total_velos > 1500 AND total_velos < 2300
             ORDER BY record_timestamp ASC;
@@ -300,7 +275,7 @@ def sum_nbvelosdispo():
 
     # Process and return the results as needed
     # data = [(row.datemiseajour, row.total_nbvelosdispo) for row in results]
-    data = [(row.record_timestamp, row.total_velos) for row in results if row.total_nbvelosdispo > 1500]
+    data = [(row.record_timestamp, row.total_velos) for row in results if row.total_velos > 1500 and row.total_velos < 2300]
     response_data = {
         'labels': [row[0] for row in data],
         'values': [row[1] for row in data]
