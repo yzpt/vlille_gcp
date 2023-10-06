@@ -6,17 +6,17 @@ function displayTransactionsCount(labels, values, values2) {
             labels: labels,
             datasets: [
                 {
-                    label: 'pos',
-                    data: values,
+                    label: 'Vélos pris',
+                    data: values2,
                     backgroundColor: window.chartColors.green2,
                     borderColor: window.chartColors.green2,
                     borderWidth: 1
                 },
                 {
-                    label: 'neg',
-                    data: values2,
-                    backgroundColor: window.chartColors.red2,
-                    borderColor: window.chartColors.red2,
+                    label: 'Vélos retournés',
+                    data: values,
+                    backgroundColor: window.chartColors.blue2,
+                    borderColor: window.chartColors.blue2,
                     borderWidth: 1
                 }
             ]
@@ -24,8 +24,8 @@ function displayTransactionsCount(labels, values, values2) {
 
         options: {
             responsive: true,
-            maintainAspectRatio: false,
-            aspectRatio: 3,
+            // maintainAspectRatio: false,
+            // aspectRatio: 3,
             scales: {
                 x: {
                     ticks: {
@@ -57,7 +57,8 @@ function displayTransactionsCount(labels, values, values2) {
             },
             plugins: {
                 legend: {
-                    display: false
+                    display: true, // Set to true to display the legend
+                    position: 'bottom', // You can also set the position to 'bottom', 'left', or 'right'
                 },
                 tooltip: {
                     enabled: true

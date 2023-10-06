@@ -6,7 +6,7 @@ function displaySumNbVelosDispo(labels, values) {
             labels: labels,
             datasets: [
                 {
-                    label: 'nb_velos_dispo',
+                    label: 'Total vélos disponibles',
                     fill: false,
                     data: values,
                     stepped: true,
@@ -19,25 +19,33 @@ function displaySumNbVelosDispo(labels, values) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
-            aspectRatio: 3,
+            // maintainAspectRatio: false,
+            // aspectRatio: 3,
             scales: {
                 x: {
                     ticks: {
+                        // callback: function(value, index, values) {
+                        //     if ((value % 180 === 0) || (index === value.length - 1)) {
+                        //         const hours = Math.floor(value / 60);
+                        //         const minutes = value % 60;
+                        //         const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
+                        //         if (value % 180 === 0) {
+                        //             return `${formattedHours}h`;
+                        //         } else if (index === value.length - 1) {
+                        //             const formattedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
+                        //             return `${formattedHours}h ${formattedMinutes}`;
+                        //         }
+                        //     }
+                        // },
                         callback: function(value, index, values) {
-                            if ((value % 180 === 0) || (index === value.length - 1)) {
+                            // if (value % 180 === 0 || index === values.length - 1) {
+                            if (value % 180 === 0) {
                                 const hours = Math.floor(value / 60);
-                                const minutes = value % 60;
                                 const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
-                                if (value % 180 === 0) {
-                                    return `${formattedHours}h`;
-                                } else if (index === value.length - 1) {
-                                    const formattedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
-                                    return `${formattedHours}h ${formattedMinutes}`;
-                                }
+                                return `${formattedHours}h`;
                             }
                         },
-                        maxRotation: 0
+                        maxRotation: 45
                     },
                     grid: {
                         display: false,
@@ -60,7 +68,7 @@ function displaySumNbVelosDispo(labels, values) {
                     display: false
                 },
                 tooltip: {
-                    enabled: false
+                    enabled: true
                 }
             }
         }

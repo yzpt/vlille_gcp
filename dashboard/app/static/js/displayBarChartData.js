@@ -6,7 +6,7 @@ function displayBarChartData(labels, values) {
             labels: labels,
             datasets: [
                 {
-                    label: 'avg_nbvelosdispo',
+                    label: 'Nombre moyen de vélos disponibles',
                     data: values,
                     backgroundColor: window.chartColors.blue2,
                     borderColor: window.chartColors.blue2,

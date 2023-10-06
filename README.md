@@ -1,3 +1,5 @@
+<a href="https://dashboard-service-kogwvm6oba-od.a.run.app/">https://dashboard-service-kogwvm6oba-od.a.run.app/</a>
+
 # V'lille GCP
 
 Collecte des données de l'<a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom">API V'lille (Disponibilité en temps réel des stations)</a>, stockage et traitement sur GCP : Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker.
@@ -532,40 +534,38 @@ if __name__ == "__main__":
 ```
 <!-- </details>  <br> -->
 
-```sh
-# build du container Docker
-docker build -t europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file .
-```	
-
 ### 3.2. Push du Docker Container sur Artifact Registry
 
 ```sh	
 # Définir les autorisations d'administrateur de l'Artifact Registry pour le compte de service
-gcloud projects add-iam-policy-binding vlille-396911 --member="serviceAccount:vlille@vlille-396911.iam.gserviceaccount.com" --role="roles/artifactregistry.admin" --project=vlille-396911
+gcloud projects add-iam-policy-binding vlille-gcp --member="serviceAccount:admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com" --role="roles/artifactregistry.admin"
+
 
 # création d'un dépôt sur Artifact Registry
-gcloud artifacts repositories create gcs-copy --repository-format=docker --location=europe-west9 --project=vlille-396911
+gcloud artifacts repositories create dashboard-repo --repository-format=docker --location=europe-west9
 
 # Authentification Docker/GCP
 gcloud auth configure-docker europe-west9-docker.pkg.dev
 
+# build du container Docker
+docker build -t europe-west9-docker.pkg.dev/vlille-gcp/dashboard-repo/dashboard-container .
+
 # Push Docker --> GCP Artifact Registry
-docker push europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/storage_copy_file
+docker push europe-west9-docker.pkg.dev/vlille-gcp/dashboard-repo/dashboard-container
+
 ```
 
 ### 3.3. Run du container
 
 ```sh
 # Attribution des droits (run admin) au compte de service
-gcloud projects add-iam-policy-binding vlille-396911 --member="serviceAccount:vlille@vlille-396911.iam.gserviceaccount.com" --role="roles/run.admin" --project=vlille-396911
+gcloud projects add-iam-policy-binding vlille-gcp --member="serviceAccount:admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com" --role="roles/run.admin"
 
 # Création d'un service Cloud Run
-gcloud run deploy load-file-flask --image europe-west9-docker.pkg.dev/vlille-396911/gcs-copy/load_file_flask --platform managed --region europe-west1 --project vlille-396911 --allow-unauthenticated
-
-# Le script s'exécute sur Cloud Run après chaque requête http sur l'URL du service
+gcloud run deploy dashboard-service --image europe-west9-docker.pkg.dev/vlille-gcp/dashboard-repo/dashboard-container --region europe-west9 --platform managed --allow-unauthenticated
 
 # Logs :
-gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=load-file-flask" --project vlille-396911 --format json > logs_cloud_run.json
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=dashboard-service" 
 
 # suppression du service Cloud Run
 gcloud run services delete load-file-flask --region europe-west1 -q

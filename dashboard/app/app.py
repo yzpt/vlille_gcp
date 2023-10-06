@@ -205,27 +205,45 @@ def get_avg_bars(libelle, week_day):
 def transactions_count():
     today = datetime.utcnow()
     query = f"""
-              WITH RankedTransactions AS (
+              WITH ComparisonTable AS (
                 SELECT
-                  station_id,
-                  EXTRACT(HOUR FROM date) AS hour_of_day,
-                  transaction_value
+                    station_id,
+                    TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS date, -- Convert to Paris timezone
+                    nb_velos_dispo AS nb_velos_dispo_current,
+                    LAG(nb_velos_dispo, 1) OVER (PARTITION BY station_id ORDER BY record_timestamp) AS nb_velos_dispo_previous
                 FROM
-                  `vlille-gcp.vlille_gcp_dataset.transactions_test`
+                    `vlille_gcp_dataset.records`
+                WHERE EXTRACT(DATE FROM TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR)) = DATE('{today}', 'Europe/Paris') -- Paris date
+                ), TransactionsTable AS (
+                SELECT
+                    station_id,
+                    date,
+                    IFNULL(nb_velos_dispo_previous, 0) - nb_velos_dispo_current AS transaction_value
+                FROM
+                    ComparisonTable
                 WHERE
-                  DATE(date) = '{today.strftime('%Y-%m-%d')}'
-              )
+                    nb_velos_dispo_previous IS NOT NULL
+                    AND (IFNULL(nb_velos_dispo_previous, 0) - nb_velos_dispo_current) <> 0
+                ), RankedTransaCtions AS (
+                SELECT
+                    station_id, 
+                    EXTRACT(HOUR FROM TIMESTAMP_SUB(date, INTERVAL 2 HOUR)) AS hour_of_day, -- Convert to Paris timezone
+                    transaction_value
+                FROM
+                    TransactionsTable
+                )
 
-              SELECT
-                hour_of_day,
-                SUM(IF(transaction_value > 0, transaction_value, 0)) AS sum_positive_transactions,
-                SUM(IF(transaction_value < 0, - transaction_value, 0)) AS sum_negative_transactions,
-              FROM
-                RankedTransactions
-              GROUP BY
-                hour_of_day
-              ORDER BY
-                hour_of_day;
+                SELECT
+                    hour_of_day,
+                    SUM(IF(transaction_value > 0, transaction_value, 0)) AS sum_positive_transactions,
+                    SUM(IF(transaction_value < 0, -transaction_value, 0)) AS sum_negative_transactions
+                FROM
+                    RankedTransactions
+                GROUP BY
+                    hour_of_day
+                ORDER BY
+                    hour_of_day;
+
             """
     
     # Run the BigQuery query
@@ -260,13 +278,18 @@ def sum_nbvelosdispo():
     # get the today date without the hours
     today = datetime.utcnow().date()
     query = f"""
-            SELECT record_timestamp, sum(nb_velos_dispo) AS total_velos
-            FROM `vlille-gcp.vlille_gcp_dataset.records`
+            SELECT TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS paris_timestamp, 
+                SUM(nb_velos_dispo) AS total_velos
+            FROM 
+                `vlille-gcp.vlille_gcp_dataset.records`
             WHERE 
-                DATE(record_timestamp) >= '{today}'
-            GROUP BY record_timestamp
-                HAVING total_velos > 1500 AND total_velos < 2300
-            ORDER BY record_timestamp ASC;
+                record_timestamp >= TIMESTAMP_SUB('2023-10-06', INTERVAL 2 HOUR) 
+            GROUP BY 
+                paris_timestamp
+            HAVING 
+                total_velos > 1500 AND total_velos < 2300
+            ORDER BY 
+                paris_timestamp ASC;
             """
     
     # Run the BigQuery query
@@ -275,9 +298,10 @@ def sum_nbvelosdispo():
 
     # Process and return the results as needed
     # data = [(row.datemiseajour, row.total_nbvelosdispo) for row in results]
-    data = [(row.record_timestamp, row.total_velos) for row in results if row.total_velos > 1500 and row.total_velos < 2300]
-    while len(data) < 1440:
-        data.append((len(data), None))
+    data = [(row.paris_timestamp, row.total_velos) for row in results if row.total_velos > 1500 and row.total_velos < 2300]
+    # print('len(data):', len(data))
+    # while len(data) < 1440:
+    #     data.append((len(data), None))
     response_data = {
         'labels': [row[0] for row in data],
         'values': [row[1] for row in data]

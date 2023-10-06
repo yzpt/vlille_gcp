@@ -44,3 +44,6 @@ bq show --schema --format=prettyjson vlille-396911:flask_dataset.transactions_te
 # powershell command to run a .sh file
 ./journal.sh
 
+# ============== après refonte ============
+
+docker build -t europe-west9-docker.pkg.dev/vlille-gcp/dashboard .
