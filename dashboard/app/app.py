@@ -35,6 +35,7 @@ def index():
     # dernieres_transactions  = get_transactions()
     timeline_sum            = sum_velos_dispos_last_24h()
     stations_vides        = [{"nom": station['nom'], "nb_velos_dispo": station['nb_velos_dispo']} for station in stations_infos if station['nb_velos_dispo'] == 0 and station['etat'] == "EN SERVICE"]
+    
     return render_template('index.html', 
                             stations_infos  =   stations_infos,
                             general_infos   =   general_infos,

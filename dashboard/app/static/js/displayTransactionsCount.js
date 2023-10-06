@@ -8,15 +8,15 @@ function displayTransactionsCount(labels, values, values2) {
                 {
                     label: 'pos',
                     data: values,
-                    backgroundColor: window.chartColors.green,
-                    borderColor: window.chartColors.green,
+                    backgroundColor: window.chartColors.green2,
+                    borderColor: window.chartColors.green2,
                     borderWidth: 1
                 },
                 {
                     label: 'neg',
                     data: values2,
-                    backgroundColor: window.chartColors.green,
-                    borderColor: window.chartColors.green,
+                    backgroundColor: window.chartColors.red2,
+                    borderColor: window.chartColors.red2,
                     borderWidth: 1
                 }
             ]

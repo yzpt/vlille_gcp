@@ -8,9 +8,9 @@ function displayBarChartData(labels, values) {
                 {
                     label: 'avg_nbvelosdispo',
                     data: values,
-                    backgroundColor: window.chartColors.green,
-                    borderColor: window.chartColors.green,
-                    borderWidth: 1
+                    backgroundColor: window.chartColors.blue2,
+                    borderColor: window.chartColors.blue2,
+                    borderWidth: 2
                 }
             ]
         },

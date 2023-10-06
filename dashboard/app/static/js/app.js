@@ -2,10 +2,25 @@
 'use strict';
 
 window.chartColors = {
-    green: '#75c181',
-    gray: '#a9b5c9',
-    text: '#252930',
-    border: '#e7e9ed'
+	blue:  '#4285F4',
+	blue2: '#76A7FA',
+	blue3: '#A0C3FF',
+	
+	red:  '#DB4437',
+	red2: '#E57368',
+	red3: 'ED9D97',
+
+	green:  '#0F9D58',
+	green2: '#33B679',
+	green3: '#7BCFA9',
+
+	yellow: '#F4B400',
+	yellow2: '#FBCB43',
+	yellow3: '#FFE168',
+
+	gray: '#a9b5c9',
+	text: '#252930',
+	border: '#e7e9ed'
 };
 
 

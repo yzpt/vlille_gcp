@@ -10,8 +10,8 @@ function displayTimelineData(labels, values) {
                     fill: false,
                     data: values,
                     stepped: true,
-                    backgroundColor: window.chartColors.green,
-                    borderColor: window.chartColors.green,
+                    backgroundColor: window.chartColors.blue2,
+                    borderColor: window.chartColors.blue2,
                     pointStyle: false,
                     borderWidth: 1.5
                 }

@@ -8,13 +8,13 @@ function addMarker(station, map) {
     } else if (station.etat === 'IN_MAINTENANCE') {
         markerColor = 'purple';
     } else if (station.nb_velos_dispo === 0) {
-        markerColor = 'red';
+        markerColor = '#DB4437';
     } else if (station.nb_velos_dispo >= 1 && station.nb_velos_dispo <= 4) {
-        markerColor = 'yellow';
+        markerColor = '#F4B400';
     } else if (station.nb_places_dispo == 0) {
-        markerColor = 'blue';
+        markerColor = '#4285F4';
     } else {
-        markerColor = 'green';
+        markerColor = '#0F9D58';
     }
 
     // Create a custom marker icon with the determined color

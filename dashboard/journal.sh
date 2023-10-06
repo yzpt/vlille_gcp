@@ -22,10 +22,10 @@ pip freeze > requirements.txt
 # > run Docker 
 
 # docker cmd
-docker build -t europe-west9-docker.pkg.dev/vlille-396911/flask-dashboard/dashboard-vlille:latest app/
+docker build -t europe-west9-docker.pkg.dev/vlille/flask-dashboard/dashboard-vlille:latest app/
 
 # test du container Docker
-docker run -p 8080:8080 europe-west9-docker.pkg.dev/vlille-396911/flask-dashboard/dashboard-vlille:latest
+# docker run -p 8080:8080 europe-west9-docker.pkg.dev/vlille-396911/flask-dashboard/dashboard-vlille:latest
 # ================ MARCHE PAS EN LOCAL WHY ? =================
 
 # push du container Docker
