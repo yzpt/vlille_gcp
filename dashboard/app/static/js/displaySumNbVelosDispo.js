@@ -24,32 +24,61 @@ function displaySumNbVelosDispo(labels, values) {
             scales: {
                 x: {
                     ticks: {
-                        // callback: function(value, index, values) {
-                        //     if ((value % 180 === 0) || (index === value.length - 1)) {
-                        //         const hours = Math.floor(value / 60);
-                        //         const minutes = value % 60;
-                        //         const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
-                        //         if (value % 180 === 0) {
-                        //             return `${formattedHours}h`;
-                        //         } else if (index === value.length - 1) {
-                        //             const formattedMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
-                        //             return `${formattedHours}h ${formattedMinutes}`;
-                        //         }
-                        //     }
-                        // },
                         callback: function(value, index, values) {
-                            // if (value % 180 === 0 || index === values.length - 1) {
-                            if (value % 180 === 0) {
-                                const hours = Math.floor(value / 60);
-                                const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
-                                return `${formattedHours}h`;
+                            const label = this.getLabelForValue(value);
+
+                            
+                            if (
+                                ( typeof label === 'string' 
+                                &&(label.includes(' 00:00') 
+                                || label.includes(' 03:00')
+                                || label.includes(' 06:00')
+                                || label.includes(' 09:00')
+                                || label.includes(' 12:00')
+                                || label.includes(' 15:00')
+                                || label.includes(' 18:00')
+                                || label.includes(' 21:00'))
+                            ) 
+                                || (index == values.length - 1)
+                            )
+                            {  
+                                // Parse the label as a Date object
+                                const dateObj = new Date(label);
+
+                                // Extract month, day, hours, and minutes
+                                const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+                                const day = String(dateObj.getDate()).padStart(2, '0');
+                                const hours = String(dateObj.getUTCHours()).padStart(2, '0');
+                                const minutes = String(dateObj.getUTCMinutes()).padStart(2, '0');
+
+                                // Format the date as MM/DD and the time as HH:MM
+                                const formattedDate = `${month}/${day}`;
+                                const formattedTime = `${hours}:${minutes}`;
+                                
+                                return formattedTime;
                             }
+
                         },
-                        maxRotation: 45
+                        maxRotation: 45,
+                        minRotation: 45
                     },
                     grid: {
-                        display: false,
-                        drawBorder: false
+                        callback: function(value, index, values) {
+                            const label = this.getLabelForValue(value);
+                            if ( typeof label === 'string' 
+                                &&(label.includes(' 00:00')
+                                || label.includes(' 03:00')
+                                || label.includes(' 06:00')
+                                || label.includes(' 09:00')
+                                || label.includes(' 12:00')
+                                || label.includes(' 15:00')
+                                || label.includes(' 18:00')
+                                || label.includes(' 21:00'))
+                            ) {
+                                return true;
+                            }
+                            return false;
+                        },
                     }
                 },
                 y: {

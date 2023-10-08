@@ -116,15 +116,18 @@ def get_timeline_nbvelos(station_libelle, nb_days_ago):
 
 @app.route('/get_timeline_sum', methods=['GET'])
 def sum_velos_dispos_last_24h():
-    twenty_four_hours_ago_datetime = datetime.utcnow() - timedelta(hours=24) 
+    # twenty_four_hours_ago_datetime = datetime.utcnow() - timedelta(hours=24) 
+    todays_date_ptz = datetime.utcnow().date() - timedelta(hours=2)
     query = f"""
-            SELECT record_timestamp, sum(nb_velos_dispo) AS total_velos
+            SELECT 
+                TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS record_timestamp_ptz,
+                sum(nb_velos_dispo) AS total_velos
             FROM `vlille-gcp.vlille_gcp_dataset.records`
             WHERE 
-                record_timestamp >= '{twenty_four_hours_ago_datetime}'
-            GROUP BY record_timestamp
+                record_timestamp >= TIMESTAMP_SUB('{todays_date_ptz}', INTERVAL 2 HOUR)
+            GROUP BY record_timestamp_ptz
                 HAVING total_velos > 1500 AND total_velos < 2300
-            ORDER BY record_timestamp ASC;
+            ORDER BY record_timestamp_ptz ASC;
             """
     
     # Run the BigQuery query
@@ -132,7 +135,11 @@ def sum_velos_dispos_last_24h():
     results = query_job.result()
 
     # Process and return the results as needed
-    data = [(row.record_timestamp, row.total_velos) for row in results]
+    data = [(row.record_timestamp_ptz, row.total_velos) for row in results]
+
+    while data[-1][0].date() < datetime.utcnow().date() + timedelta(days=1):
+        data.append((data[-1][0] + timedelta(minutes=1), None))
+
     response_data = {
         'labels': [row[0] for row in data],
         'values': [row[1] for row in data]
@@ -267,7 +274,8 @@ def todays_transactions_count():
     data = transactions_count()
     sum = 0
     for i in range(0, len(data['values'])):
-        sum += data['values'][i] + data['values2'][i]
+        # sum += data['values'][i] + data['values2'][i]
+        sum += data['values'][i] # compte des emprunts uniquement
     return sum
 
 

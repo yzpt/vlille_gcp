@@ -43,32 +43,42 @@ const alerts = [...alertList].map(element => new bootstrap.Alert(element))
 let currentInfoWindow = null;
 let selectedStation = stations[0];
 
-displayBarChartData([0,0],[0,0]);
-displayTimelineData([0,0],[0,0]);
+// displayBarChartData([0,0],[0,0]);
+// displayTimelineData([0,0],[0,0]);
+displayBarChartData([],[]);
+displayTimelineData([],[]);
 
+
+bq_loading_sumnbvelos.style.display = 'block';
+fetch('/get_timeline_sum')
+	.then(function(response) {
+		return response.json();
+	})
+	.then(function(jsonResponse) {
+		bq_loading_sumnbvelos.style.display = 'none';
+		displaySumNbVelosDispo(jsonResponse.labels, jsonResponse.values);
+	}
+);
+
+bq_loading_todays_transactions.style.display = 'block';
 fetch('/get_transactions_count')
     .then(function(response) {
         return response.json();
     })
     .then(function(jsonResponse) {
+		bq_loading_todays_transactions.style.display = 'none';
         displayTransactionsCount(jsonResponse.labels, jsonResponse.values, jsonResponse.values2);
     });
+    
 
-fetch('/get_nbvelosdispo')
-    .then(function(response) {
-        return response.json();
-    })
-    .then(function(jsonResponse) {
-        displaySumNbVelosDispo(jsonResponse.labels, jsonResponse.values);
-    });
-
-// Event listener for the weekday dropdown change event
 document.getElementById("weekday_form").addEventListener("change", () => {
+	bq_loading_avg_hours.style.display = 'block';
     fetchDataForWeekday(selectedStation, document.getElementById("weekday_form").value);
 });
 
 // Event listener for the timeline span dropdown change event
 document.getElementById("timeline_span_nbvelosdispo_form").addEventListener("change", () => {
+	bq_loading_timeline_nbvelos.style.display = 'block';
     fetchDataForTimelineSpan(selectedStation, document.getElementById("timeline_span_nbvelosdispo_form").value);
 });
 

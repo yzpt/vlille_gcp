@@ -53,9 +53,11 @@ function addMarker(station, map) {
         selectedStation = station;
 
         const selectedWeekday = document.getElementById("weekday_form").value;
+        bq_loading_avg_hours.style.display = 'block';
         fetchDataForWeekday(station, selectedWeekday);
 
         const selectedSpan = document.getElementById("timeline_span_nbvelosdispo_form").value;
+        bq_loading_timeline_nbvelos.style.display = 'block';
         fetchDataForTimelineSpan(station, selectedSpan);
 
         // Close the currently open info window, if any
@@ -70,13 +72,16 @@ function addMarker(station, map) {
         currentInfoWindow = infowindow;
 
         // remove 'hidden' class for station infos divs
-        document.getElementById('graphs').classList.remove('hidden');
+        document.getElementById('graphs-indiv').classList.remove('hidden');
 
         // add 'hidden' class to the #div_infos_generales div
         document.getElementById('div_infos_generales').classList.add('hidden');
 
-        // display station's information in the station_infos_carts div:
-        
+        // when windows is closed, add hidden class for #graphs-indiv        
+        infowindow.addListener('closeclick', function() {
+            document.getElementById('graphs-indiv').classList.add('hidden');
+            // document.getElementById('div_infos_generales').classList.remove('hidden');
+        });
 
 
             

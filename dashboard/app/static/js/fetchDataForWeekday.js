@@ -14,6 +14,7 @@ async function fetchDataForWeekday(station, selectedWeekday) {
                 avgBarChart.data.labels = jsonResponse.labels;
                 avgBarChart.data.datasets[0].data = jsonResponse.values;
                 avgBarChart.update();
+                bq_loading_avg_hours.style.display = 'none';
             // Perform further processing or visualization with xValues and yValues here
         })} catch (error) {
             console.error('Error fetching data:', error);

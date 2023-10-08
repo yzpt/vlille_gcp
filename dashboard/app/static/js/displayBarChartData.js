@@ -59,3 +59,5 @@ function displayBarChartData(labels, values) {
         }
     });
 }
+
+

@@ -6,7 +6,7 @@ function displayTransactionsCount(labels, values, values2) {
             labels: labels,
             datasets: [
                 {
-                    label: 'Vélos pris',
+                    label: 'Vélos empruntés',
                     data: values2,
                     backgroundColor: window.chartColors.green2,
                     borderColor: window.chartColors.green2,
