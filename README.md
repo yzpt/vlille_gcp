@@ -568,7 +568,7 @@ gcloud run deploy dashboard-service --image europe-west9-docker.pkg.dev/vlille-g
 gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=dashboard-service" 
 
 # suppression du service Cloud Run
-gcloud run services delete load-file-flask --region europe-west1 -q
+gcloud run services delete dashboard-service --region europe-west9 -q
 ```
 
 ## 4. Dataproc + PySpark

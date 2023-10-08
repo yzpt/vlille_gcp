@@ -50,6 +50,7 @@ function addMarker(station, map) {
     // Add a click event listener to display the information when the marker is clicked
     marker.addListener('click', function() {
 
+        
         selectedStation = station;
 
         const selectedWeekday = document.getElementById("weekday_form").value;
@@ -76,11 +77,13 @@ function addMarker(station, map) {
 
         // add 'hidden' class to the #div_infos_generales div
         document.getElementById('div_infos_generales').classList.add('hidden');
+        document.getElementById('graphs-general').classList.add('hidden');
 
         // when windows is closed, add hidden class for #graphs-indiv        
         infowindow.addListener('closeclick', function() {
             document.getElementById('graphs-indiv').classList.add('hidden');
-            // document.getElementById('div_infos_generales').classList.remove('hidden');
+            document.getElementById('div_infos_generales').classList.remove('hidden');
+            document.getElementById('graphs-general').classList.remove('hidden');
         });
 
 
