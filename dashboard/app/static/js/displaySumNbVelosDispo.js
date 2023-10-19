@@ -1,3 +1,15 @@
+
+function isSameDay(dateString1, dateString2) {
+    const date1 = new Date(dateString1);
+    const date2 = new Date(dateString2);
+    return (
+        date1.getDate() === date2.getDate() &&
+        date1.getMonth() === date2.getMonth() &&
+        date1.getFullYear() === date2.getFullYear()
+    );
+}
+
+
 function displaySumNbVelosDispo(labels, values) {
     var ctx = document.getElementById('canvas-sum-nbvelosdispo').getContext('2d');
     sumNbVelosDispoChart = new Chart(ctx, {
@@ -23,63 +35,35 @@ function displaySumNbVelosDispo(labels, values) {
             // aspectRatio: 3,
             scales: {
                 x: {
-                    ticks: {
-                        callback: function(value, index, values) {
-                            const label = this.getLabelForValue(value);
-
+                    // ticks: {
+                    //     callback: function(value, index, values) {
+                    //         const currentLabel = this.getLabelForValue(value);
+                    //         const prevLabel = this.getLabelForValue(values[index - 1]);
                             
-                            if (
-                                ( typeof label === 'string' 
-                                &&(label.includes(' 00:00') 
-                                || label.includes(' 03:00')
-                                || label.includes(' 06:00')
-                                || label.includes(' 09:00')
-                                || label.includes(' 12:00')
-                                || label.includes(' 15:00')
-                                || label.includes(' 18:00')
-                                || label.includes(' 21:00'))
-                            ) 
-                                || (index == values.length - 1)
-                            )
-                            {  
-                                // Parse the label as a Date object
-                                const dateObj = new Date(label);
-
-                                // Extract month, day, hours, and minutes
-                                const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // Months are 0-based
-                                const day = String(dateObj.getDate()).padStart(2, '0');
-                                const hours = String(dateObj.getUTCHours()).padStart(2, '0');
-                                const minutes = String(dateObj.getUTCMinutes()).padStart(2, '0');
-
-                                // Format the date as MM/DD and the time as HH:MM
-                                const formattedDate = `${month}/${day}`;
-                                const formattedTime = `${hours}:${minutes}`;
-                                
-                                return formattedTime;
-                            }
-
-                        },
-                        maxRotation: 45,
-                        minRotation: 45
-                    },
-                    grid: {
-                        callback: function(value, index, values) {
-                            const label = this.getLabelForValue(value);
-                            if ( typeof label === 'string' 
-                                &&(label.includes(' 00:00')
-                                || label.includes(' 03:00')
-                                || label.includes(' 06:00')
-                                || label.includes(' 09:00')
-                                || label.includes(' 12:00')
-                                || label.includes(' 15:00')
-                                || label.includes(' 18:00')
-                                || label.includes(' 21:00'))
-                            ) {
-                                return true;
-                            }
-                            return false;
-                        },
-                    }
+                    //         // Check if the current label is from a new day (or if it's the first label)
+                    //         if (!prevLabel || !isSameDay(currentLabel, prevLabel)) {
+                    //             const dateObj = new Date(currentLabel);
+                    //             const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    //             const day = String(dateObj.getDate()).padStart(2, '0');
+                    //             const hour = String(dateObj.getHours()).padStart(2, '0');
+                    //             const formattedDate = `${month}/${day} ${hour}:00`;
+                    //             return formattedDate;
+                    //         }
+                    //     }
+                    // },
+                    // grid: {
+                    //     callback: function(value, index, values) {
+                    //         const currentLabel = this.getLabelForValue(value);
+                    //         const prevLabel = this.getLabelForValue(values[index - 1]);
+                            
+                    //         // Check if the current label is from a new day (or if it's the first label)
+                    //         if (!prevLabel || !isSameDay(currentLabel, prevLabel)) {
+                    //             return true; // Display grid line for the first timestamp of the day
+                    //         } else {
+                    //             return false; // Hide grid line for other timestamps in the same day
+                    //         }
+                    //     }
+                    // }
                 },
                 y: {
                     ticks: {

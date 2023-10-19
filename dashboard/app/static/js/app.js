@@ -50,7 +50,7 @@ displayTimelineData([],[]);
 
 
 bq_loading_sumnbvelos.style.display = 'block';
-fetch('/get_timeline_sum')
+fetch('/get_timeline_sum/today')
 	.then(function(response) {
 		return response.json();
 	})
@@ -70,7 +70,14 @@ fetch('/get_transactions_count')
         displayTransactionsCount(jsonResponse.labels, jsonResponse.values, jsonResponse.values2);
     });
     
+// Event listener for the timeline_sum_span dropdown change event
+document.getElementById("timeline_sum_span").addEventListener("change", () => {
+	bq_loading_sumnbvelos.style.display = 'block';
+	fetchDataForSumNbVelosDispo(document.getElementById("timeline_sum_span").value);
+});
 
+
+// Event listener for the weekday dropdown change event
 document.getElementById("weekday_form").addEventListener("change", () => {
 	bq_loading_avg_hours.style.display = 'block';
     fetchDataForWeekday(selectedStation, document.getElementById("weekday_form").value);

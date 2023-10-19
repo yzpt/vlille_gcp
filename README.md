@@ -455,27 +455,6 @@ SELECT record_timestamp, COUNT( DISTINCT station_id ) AS nb
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## 3. Docker Container + Cloud Run
 
 Transfert et modification du nom des fichiers json collectés.

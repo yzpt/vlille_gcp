@@ -33,7 +33,7 @@ def index():
         "nb_sations_deconnectees":          sum([station["etat_connexion"] == "DÉCONNECTÉ" for station in stations_infos])
     }
     # dernieres_transactions  = get_transactions()
-    timeline_sum            = sum_velos_dispos_last_24h()
+    timeline_sum            = sum_velos_dispos_last_24h('today')
     stations_vides        = [{"nom": station['nom'], "nb_velos_dispo": station['nb_velos_dispo']} for station in stations_infos if station['nb_velos_dispo'] == 0 and station['etat'] == "EN SERVICE"]
     
     return render_template('index.html', 
@@ -114,17 +114,27 @@ def get_timeline_nbvelos(station_libelle, nb_days_ago):
 
 
 
-@app.route('/get_timeline_sum', methods=['GET'])
-def sum_velos_dispos_last_24h():
+@app.route('/get_timeline_sum/<span>', methods=['GET'])
+def sum_velos_dispos_last_24h(span):
     # twenty_four_hours_ago_datetime = datetime.utcnow() - timedelta(hours=24) 
-    todays_date_ptz = datetime.utcnow().date() - timedelta(hours=2)
+    datetime_now_ptz = (datetime.utcnow() + timedelta(hours=2))
+    
+    if span == 'today':
+        start_date = datetime_now_ptz.date()
+    elif span == '24h':
+        start_date = (datetime_now_ptz - timedelta(hours=24))
+    elif span == '7d':
+        start_date = (datetime_now_ptz - timedelta(days=7)).date()
+
+    print('start_date: ', start_date)
+
     query = f"""
             SELECT 
                 TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS record_timestamp_ptz,
                 sum(nb_velos_dispo) AS total_velos
             FROM `vlille-gcp.vlille_gcp_dataset.records`
             WHERE 
-                record_timestamp >= TIMESTAMP_SUB('{todays_date_ptz}', INTERVAL 2 HOUR)
+                record_timestamp >= TIMESTAMP_SUB('{start_date}', INTERVAL 2 HOUR)
             GROUP BY record_timestamp_ptz
                 HAVING total_velos > 1500 AND total_velos < 2300
             ORDER BY record_timestamp_ptz ASC;
@@ -137,8 +147,9 @@ def sum_velos_dispos_last_24h():
     # Process and return the results as needed
     data = [(row.record_timestamp_ptz, row.total_velos) for row in results]
 
-    while data[-1][0].date() < datetime.utcnow().date() + timedelta(days=1):
-        data.append((data[-1][0] + timedelta(minutes=1), None))
+    if span == 'today':
+        while data[-1][0].date() < datetime.utcnow().date() + timedelta(days=1):
+            data.append((data[-1][0] + timedelta(minutes=1), None))
 
     response_data = {
         'labels': [row[0] for row in data],
@@ -234,7 +245,7 @@ def transactions_count():
                 ), RankedTransaCtions AS (
                 SELECT
                     station_id, 
-                    EXTRACT(HOUR FROM TIMESTAMP_SUB(date, INTERVAL 2 HOUR)) AS hour_of_day, -- Convert to Paris timezone
+                    EXTRACT(HOUR FROM date) AS hour_of_day, 
                     transaction_value
                 FROM
                     TransactionsTable
@@ -284,14 +295,15 @@ def todays_transactions_count():
 @app.route('/get_nbvelosdispo', methods=['GET'])
 def sum_nbvelosdispo():
     # get the today date without the hours
-    today = datetime.utcnow().date()
+    today = (datetime.utcnow() + timedelta(hours=2)).date()
+    print('today: ', today)
     query = f"""
             SELECT TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS paris_timestamp, 
                 SUM(nb_velos_dispo) AS total_velos
             FROM 
                 `vlille-gcp.vlille_gcp_dataset.records`
             WHERE 
-                record_timestamp >= TIMESTAMP_SUB('2023-10-06', INTERVAL 2 HOUR) 
+                record_timestamp >= TIMESTAMP_SUB('{today}', INTERVAL 2 HOUR) 
             GROUP BY 
                 paris_timestamp
             HAVING 
