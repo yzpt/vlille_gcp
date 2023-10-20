@@ -11,7 +11,7 @@ key-vlille-gcp.json
 cf_get_data_and_store_to_gcs/key-vlille.json
 docker_storage_copy_files/key-vlille.json
 key-dataflow-sa-yzpt.json
-
+keyfile-zapart-data-vlille.json
 
 ./requirements.txt
 ./requirements_va.txt
