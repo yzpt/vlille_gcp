@@ -10,7 +10,7 @@ function isSameDay(dateString1, dateString2) {
 }
 
 
-function displaySumNbVelosDispo(labels, values) {
+function displaySumNbVelosDispo(labels, values, span) {
     var ctx = document.getElementById('canvas-sum-nbvelosdispo').getContext('2d');
     sumNbVelosDispoChart = new Chart(ctx, {
         type: 'line',
@@ -35,22 +35,39 @@ function displaySumNbVelosDispo(labels, values) {
             // aspectRatio: 3,
             scales: {
                 x: {
-                    // ticks: {
-                    //     callback: function(value, index, values) {
-                    //         const currentLabel = this.getLabelForValue(value);
-                    //         const prevLabel = this.getLabelForValue(values[index - 1]);
+                    ticks: {
+                        callback: function(value, index, values) {
+
+                            const currentLabel = this.getLabelForValue(value);
                             
-                    //         // Check if the current label is from a new day (or if it's the first label)
-                    //         if (!prevLabel || !isSameDay(currentLabel, prevLabel)) {
-                    //             const dateObj = new Date(currentLabel);
-                    //             const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                    //             const day = String(dateObj.getDate()).padStart(2, '0');
-                    //             const hour = String(dateObj.getHours()).padStart(2, '0');
-                    //             const formattedDate = `${month}/${day} ${hour}:00`;
-                    //             return formattedDate;
-                    //         }
-                    //     }
-                    // },
+                            // example : "Fri, 20 Oct 2023 00:00:00 GMT"
+                            const dateObj = new Date(currentLabel);
+                            // labels shifted by 2 hours
+                            dateObj.setHours(dateObj.getHours() - 2 );
+
+                            const month = (dateObj.getMonth() + 1 < 10) ? `0${dateObj.getMonth() + 1}` : `${dateObj.getMonth() + 1}`;
+                            const day = (dateObj.getDate() < 10) ? `0${dateObj.getDate()}` : `${dateObj.getDate()}`;
+                            const hour = (dateObj.getHours() < 10) ? `0${dateObj.getHours()}` : `${dateObj.getHours()}`;
+                            const minute = (dateObj.getMinutes() < 10) ? `0${dateObj.getMinutes()}` : `${dateObj.getMinutes()}`;
+
+                            
+                            // const timeSpan = document.getElementById('timeline_sum_span').value;
+                            const timeSpan = span;
+                            if (timeSpan === 'today' || timeSpan === '24h') {
+                                if (minute === '00') {
+                                    if (hour == '00' || hour == '03' || hour == '06' || hour == '09' || hour == '12' || hour == '15' || hour == '18' || hour == '21') {
+                                        return `${hour}h`;
+                                    }
+                                }
+                            } else if (timeSpan === '7d') {
+                                if (minute === '00') {
+                                    if (hour == '00') {
+                                        return `${dateObj.getDate()}/${month}`;
+                                    }
+                                }
+                            }
+                        }
+                    },
                     // grid: {
                     //     callback: function(value, index, values) {
                     //         const currentLabel = this.getLabelForValue(value);

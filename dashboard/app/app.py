@@ -86,16 +86,25 @@ def get_station_infos(station_libelle):
     
 
 
-@app.route('/get_timeline_nbvelos/<station_libelle>/<nb_days_ago>', methods=['GET'])
-def get_timeline_nbvelos(station_libelle, nb_days_ago):
+@app.route('/get_timeline_nbvelos/<station_libelle>/<span>', methods=['GET'])
+def get_timeline_nbvelos(station_libelle, span):
+    
+    datetime_now_ptz = (datetime.utcnow() + timedelta(hours=2))
+
+    if span == 'today':
+        start_date = datetime_now_ptz.date()
+    elif span == '24h':
+        start_date = (datetime_now_ptz - timedelta(hours=24))
+    elif span == '7d':
+        start_date = (datetime_now_ptz - timedelta(days=7)).date()
 
     # Get the current date and time
-    date_inf = datetime.utcnow() - timedelta(hours=24*int(nb_days_ago))
+    # date_inf = datetime.utcnow() - timedelta(hours=24*int(nb_days_ago))
     query = f"""
             SELECT station_id, nb_velos_dispo, record_timestamp
             FROM `vlille-gcp.vlille_gcp_dataset.records`
             WHERE 
-                record_timestamp >= TIMESTAMP('{date_inf}')
+                record_timestamp >= TIMESTAMP('{start_date}')
             AND station_id = {station_libelle}
             ORDER BY record_timestamp
             """
@@ -106,11 +115,33 @@ def get_timeline_nbvelos(station_libelle, nb_days_ago):
 
     # Process and return the results as needed
     data = [(row.record_timestamp, row.nb_velos_dispo) for row in results]
+
+    # Add missing rows for the missing minutes, aim: grid displaying missing when no data at HH:00 time
+    df = pd.DataFrame(data, columns=['record_timestamp', 'nb_velos_dispo'])
+    df['record_timestamp'] = pd.to_datetime(df['record_timestamp']).dt.strftime('%Y-%m-%d %H:%M')
+    df['record_timestamp'] = pd.to_datetime(df['record_timestamp'])
+    df = add_missing_rows(df, 'record_timestamp', 'nb_velos_dispo')
+    
+    count = 1440 - len(df)
+    while count > 0:
+        # add a row with timestamp+1minute, nb_velos_dispo=None
+        new_row = {
+            'record_timestamp': df.iloc[-1]['record_timestamp'] + timedelta(minutes=1),
+            'nb_velos_dispo': None
+        }
+
+        # Concatenate the original DataFrame with the new row
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        count -= 1
+
+
+    # return two list: labels and values, respectively df['record_timestamp'] and df['nb_velos_dispo']
     response_data = {
-        'labels': [row[0] for row in data],
-        'values': [row[1] for row in data]
+        'labels': [row for row in df['record_timestamp']],
+        'values': [row for row in df['nb_velos_dispo']]
     }
-    return jsonify(response_data)
+
+    return response_data
 
 
 
@@ -147,16 +178,42 @@ def sum_velos_dispos_last_24h(span):
     # Process and return the results as needed
     data = [(row.record_timestamp_ptz, row.total_velos) for row in results]
 
-    if span == 'today':
-        while data[-1][0].date() < datetime.utcnow().date() + timedelta(days=1):
-            data.append((data[-1][0] + timedelta(minutes=1), None))
+    # Add missing rows for the missing minutes, aim: grid displaying missing when no data at HH:00 time
+    df = pd.DataFrame(data, columns=['record_timestamp_ptz', 'total_velos'])
+    df['record_timestamp_ptz'] = pd.to_datetime(df['record_timestamp_ptz']).dt.strftime('%Y-%m-%d %H:%M')
+    df['record_timestamp_ptz'] = pd.to_datetime(df['record_timestamp_ptz'])
+    df = add_missing_rows(df, 'record_timestamp_ptz', 'total_velos')
+    
+    count = 1440 - len(df)
+    while count > 0:
+        # add a row with timestamp+1minute, total_velos=None
+        new_row = {
+            'record_timestamp_ptz': df.iloc[-1]['record_timestamp_ptz'] + timedelta(minutes=1),
+            'total_velos': None
+        }
 
+        # Concatenate the original DataFrame with the new row
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        count -= 1
+
+
+    # return two list: labels and values, respectively df['record_timestamp_ptz'] and df['total_velos']
     response_data = {
-        'labels': [row[0] for row in data],
-        'values': [row[1] for row in data]
+        'labels': [row for row in df['record_timestamp_ptz']],
+        'values': [row for row in df['total_velos']]
     }
-    # return jsonify(response_data)
     return response_data
+
+    # if span == 'today':
+    #     while data[-1][0].date() < datetime.utcnow().date() + timedelta(days=1):
+    #         data.append((data[-1][0] + timedelta(minutes=1), None))
+
+    # response_data = {
+    #     'labels': [row[0] for row in data],
+    #     'values': [row[1] for row in data]
+    # }
+    # # return jsonify(response_data)
+    # return response_data
 
 def get_stations_pleines():
     query = f"""
@@ -298,18 +355,18 @@ def sum_nbvelosdispo():
     today = (datetime.utcnow() + timedelta(hours=2)).date()
     print('today: ', today)
     query = f"""
-            SELECT TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS paris_timestamp, 
+            SELECT TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS record_timestamp_ptz, 
                 SUM(nb_velos_dispo) AS total_velos
             FROM 
                 `vlille-gcp.vlille_gcp_dataset.records`
             WHERE 
                 record_timestamp >= TIMESTAMP_SUB('{today}', INTERVAL 2 HOUR) 
             GROUP BY 
-                paris_timestamp
+                record_timestamp_ptz
             HAVING 
                 total_velos > 1500 AND total_velos < 2300
             ORDER BY 
-                paris_timestamp ASC;
+                record_timestamp_ptz ASC;
             """
     
     # Run the BigQuery query
@@ -318,15 +375,47 @@ def sum_nbvelosdispo():
 
     # Process and return the results as needed
     # data = [(row.datemiseajour, row.total_nbvelosdispo) for row in results]
-    data = [(row.paris_timestamp, row.total_velos) for row in results if row.total_velos > 1500 and row.total_velos < 2300]
-    # print('len(data):', len(data))
-    # while len(data) < 1440:
-    #     data.append((len(data), None))
+    data = [(row.record_timestamp_ptz, row.total_velos) for row in results if row.total_velos > 1500 and row.total_velos < 2300]
+
+    # Add missing rows for the missing minutes, aim: grid displaying missing when no data at HH:00 time
+    df = pd.DataFrame(data, columns=['record_timestamp_ptz', 'total_velos'])
+    df['record_timestamp_ptz'] = pd.to_datetime(df['record_timestamp_ptz']).dt.strftime('%Y-%m-%d %H:%M')
+    df['record_timestamp_ptz'] = pd.to_datetime(df['record_timestamp_ptz'])
+    df = add_missing_rows(df, 'record_timestamp_ptz', 'total_velos')
+    
+    # return two list: labels and values, respectively df['record_timestamp_ptz'] and df['total_velos']
     response_data = {
-        'labels': [row[0] for row in data],
-        'values': [row[1] for row in data]
+        'labels': [row for row in df['record_timestamp_ptz']],
+        'values': [row for row in df['total_velos']]
     }
-    return (response_data)
+    return response_data
+
+
+
+def add_missing_rows(input_df, timestamp_column_str, value_column_str):
+
+    new_rows = []
+    for index, row in input_df.iterrows():
+        if index < len(input_df) - 1:
+            next_row = input_df.iloc[index + 1]
+            time_diff = (next_row[timestamp_column_str] - row[timestamp_column_str]).total_seconds()
+            if time_diff > 60:  # If the time difference is greater than 1 minute
+                current_time = row[timestamp_column_str]
+                while (current_time + timedelta(minutes=1)) < next_row[timestamp_column_str]:
+                    current_time += timedelta(minutes=1)
+                    new_row = {
+                        timestamp_column_str: current_time,
+                        value_column_str: row[value_column_str]
+                    }
+                    new_rows.append(new_row)
+    # Create a new DataFrame with missing rows
+    new_df = pd.concat([input_df, pd.DataFrame(new_rows)], ignore_index=True)
+    # Sort the DataFrame by 'record_timestamp_ptz'
+    new_df = new_df.sort_values(by=timestamp_column_str).reset_index(drop=True)
+    return new_df
+
+
+
 
 
 if __name__ == '__main__':

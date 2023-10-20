@@ -32,8 +32,8 @@ function displayTimelineData(labels, values) {
                         }
                     },
                     grid: {
-                        display: false,
-                        drawBorder: false
+                        display: true,
+                        drawBorder: true
                     }
                 },
                 y: {
@@ -52,7 +52,7 @@ function displayTimelineData(labels, values) {
                     display: false
                 },
                 tooltip: {
-                    enabled: false
+                    enabled: true
                 }
             }
         }

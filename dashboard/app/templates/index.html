@@ -111,9 +111,9 @@
                         </div><!--//col-->
                         <div class="col-auto">
                             <select class="form-select form-select-sm ms-auto d-inline-flex w-auto" id="timeline_span_nbvelosdispo_form">
-                                <option value="1" selected>last 24 h</option>
-                                <option value="7">last 7 days</option>
-                                <option value="30">last month</option>
+                                <option value="today" selected>Today</option>
+                                <option value="24h">24h</option>
+                                <option value="7d">7d</option>
                             </select> 
                         </div><!--//col-->
                     </div><!--//row-->
@@ -171,11 +171,16 @@
                             <h4 class="app-card-title">Total bikes count</h4>
                         </div><!--//col-->
                         <div class="col-auto">
-                            <select class="form-select form-select-sm ms-auto d-inline-flex w-auto" id="timeline_sum_span">
+                            <!-- <select class="form-select form-select-sm ms-auto d-inline-flex w-auto" id="timeline_sum_span">
                                 <option value="today" selected>Aujourd'hui</option>
                                 <option value="24h">Dernières 24h</option>
                                 <option value="7d">7 derniers jours</option>
-                            </select>
+                            </select> -->
+                            <div class="btn-timespan-group" role="group" aria-label="Timeline Selection" id="timeline_sum_span">
+                                <button type="button" class="btn-timespan btn-timespan-primary selected" data-value="today">Today</button>
+                                <button type="button" class="btn-timespan btn-timespan-primary" data-value="24h">24h</button>
+                                <button type="button" class="btn-timespan btn-timespan-primary" data-value="7d">7d</button>
+                            </div>
                         </div>
                     </div><!--//row-->
                 </div><!--//app-card-header-->

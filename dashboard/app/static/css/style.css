@@ -1,3 +1,32 @@
+/* Add your existing CSS styles for buttons here */
+.btn-timespan-group .btn-timespan {
+  /* background-color: var(--blue); */
+  color: var(--blue);
+  border-color: var(--blue);
+  margin: 0;
+}
+
+.btn-timespan-group .btn-timespan.selected {
+  background-color: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+
+/* Override Bootstrap's default styles for buttons */
+.btn-timespan-primary {
+  /* background-color: var(--blue); */
+  border-color: var(--blue);
+  color: white;
+}
+
+.btn-timespan-primary:hover {
+  background-color: var(--blue);
+  border-color: var(--blue);
+  color: white;
+}
+
+
+
 .fade-container {
   position: absolute;
   top: 50%;

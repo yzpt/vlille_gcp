@@ -56,7 +56,7 @@ fetch('/get_timeline_sum/today')
 	})
 	.then(function(jsonResponse) {
 		bq_loading_sumnbvelos.style.display = 'none';
-		displaySumNbVelosDispo(jsonResponse.labels, jsonResponse.values);
+		displaySumNbVelosDispo(jsonResponse.labels, jsonResponse.values, 'today');
 	}
 );
 
@@ -89,3 +89,43 @@ document.getElementById("timeline_span_nbvelosdispo_form").addEventListener("cha
     fetchDataForTimelineSpan(selectedStation, document.getElementById("timeline_span_nbvelosdispo_form").value);
 });
 
+
+
+// ======================= timespan buttons management =======================
+// Get the buttons
+const buttons = document.querySelectorAll('.btn-timespan-group .btn-timespan');
+
+// Function to handle button clicks
+function handleButtonClick(event) {
+	bq_loading_sumnbvelos.style.display = 'block';
+	fetchDataForSumNbVelosDispo(event.target.getAttribute('data-value'));
+
+    // Remove the 'selected' class from all buttons
+    buttons.forEach(button => {
+        button.classList.remove('selected');
+    });
+
+    // Add the 'selected' class to the clicked button
+    event.target.classList.add('selected');
+
+    // Get the selected value and store it in local storage
+    const selectedValue = event.target.getAttribute('data-value');
+    localStorage.setItem('selectedTimeline', selectedValue);
+
+    // Perform actions based on the selected value (you can add your logic here)
+    console.log('Selected value:', selectedValue);
+}
+
+// Attach click event listeners to the buttons
+buttons.forEach(button => {
+    button.addEventListener('click', handleButtonClick);
+});
+
+// Check if there's a selected value in local storage and apply the 'selected' class
+const storedValue = localStorage.getItem('selectedTimeline');
+if (storedValue) {
+    const selectedButton = document.querySelector(`[data-value="${storedValue}"]`);
+    if (selectedButton) {
+        selectedButton.classList.add('selected');
+    }
+}
