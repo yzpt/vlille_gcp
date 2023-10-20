@@ -26,9 +26,9 @@
         <div class="col-6 col-lg-3">
             <div class="app-card app-card-stat shadow-sm h-100">
                 <div class="app-card-body p-3 p-lg-4">
-                    <h4 class="stats-type mb-1" style="color: var(--text);">Vélos disponibles</h4>
+                    <h4 class="stats-type mb-1" style="color: var(--text);">Bikes available</h4>
                     <div class="stats-figure" style="color: var(--text);">{{general_infos.nb_velos_dispo}}</div>
-                    <div class="stats-meta"  style="color: var(--text);"><i>sur {{general_infos.nb_stations_nbvelos_sup_to_0}} stations</i></div>
+                    <div class="stats-meta"  style="color: var(--text);"><i>on {{general_infos.nb_stations_nbvelos_sup_to_0}} stations</i></div>
                 </div><!--//app-card-body-->
                 <a class="app-card-link-mask" href="#"></a>
             </div><!--//app-card-->
@@ -37,9 +37,9 @@
         <div class="col-6 col-lg-3">
             <div class="app-card app-card-stat shadow-sm h-100">
                 <div class="app-card-body p-3 p-lg-4">
-                    <h4 class="stats-type mb-1" style="color: var(--text);">Places libres</h4>
+                    <h4 class="stats-type mb-1" style="color: var(--text);">Free places</h4>
                     <div class="stats-figure"  style="color: var(--text);">{{general_infos.nb_places_dispo}}</div>
-                    <div class="stats-meta" style="color: var(--text);"><i>sur {{general_infos.nb_stations_nbplaces_sup_to_0}} stations</i></div>
+                    <div class="stats-meta" style="color: var(--text);"><i>on {{general_infos.nb_stations_nbplaces_sup_to_0}} stations</i></div>
                 </div><!--//app-card-body-->
                 <a class="app-card-link-mask" href="#"></a>
             </div><!--//app-card-->
@@ -47,10 +47,10 @@
         <div class="col-6 col-lg-3">
             <div class="app-card app-card-stat shadow-sm h-100">
                 <div class="app-card-body p-3 p-lg-4">
-                    <h4 class="stats-type mb-1" style="color: var(--red);">{{general_infos.nb_stations_vides}} Station(s) vide(s)</h4>
-                    <h4 class="stats-type mb-1" style="color: var(--blue);">{{general_infos.nb_stations_pleines}} Station(s) pleine(s)</h4>
-                    <div class="stats-meta"  style="color: purple;">{{general_infos.nb_stations_en_maintenance}} en maintenance</div>
-                    <div class="stats-meta" style="color: black; opacity: 0.9;">{{general_infos.nb_stations_reformees}} réformées</div>
+                    <h4 class="stats-type mb-1" style="color: var(--red);">{{general_infos.nb_stations_vides}} empty station(s)</h4>
+                    <h4 class="stats-type mb-1" style="color: var(--blue);">{{general_infos.nb_stations_pleines}} full station(s)</h4>
+                    <div class="stats-meta"  style="color: purple;">{{general_infos.nb_stations_en_maintenance}} in maintenance</div>
+                    <div class="stats-meta" style="color: black; opacity: 0.9;">{{general_infos.nb_stations_reformees}} reformed</div>
                 </div><!--//app-card-body-->
                 <a class="app-card-link-mask" href="#"></a>
             </div><!--//app-card-->
@@ -59,7 +59,7 @@
             <div class="app-card app-card-stat shadow-sm h-100">
                 <div class="app-card-body p-3 p-lg-4">
                     <div class="stats-figure" style="color: var(--text);">{{todays_transactions_count}}</div>
-                    <h4 class="stats-type mb-1" style="color: var(--text);">Emprunts<br>aujourd'hui</h4>
+                    <h4 class="stats-type mb-1" style="color: var(--text);">Loans<br>today</h4>
                     <!-- <div class="stats-meta">Ce jour</div> -->
                 </div><!--//app-card-body-->
                 <a class="app-card-link-mask" href="#"></a>
@@ -177,7 +177,7 @@
                                 <option value="7d">7 derniers jours</option>
                             </select> -->
                             <div class="btn-timespan-group" role="group" aria-label="Timeline Selection" id="timeline_sum_span">
-                                <button type="button" class="btn-timespan btn-timespan-primary selected" data-value="today">Today</button>
+                                <button type="button" class="btn-timespan btn-timespan-primary" data-value="today">Today</button>
                                 <button type="button" class="btn-timespan btn-timespan-primary" data-value="24h">24h</button>
                                 <button type="button" class="btn-timespan btn-timespan-primary" data-value="7d">7d</button>
                             </div>
@@ -509,7 +509,6 @@
     <script src="../static/js/fetchDataForWeekday.js"></script>
     <script src="../static/js/fetchDataForSumNbVelosDispo.js"></script>
     
-    <script src="../static/js/displayDoughnutChartData.js"></script>
     <script src="../static/js/displayBarChartData.js"></script>
     <script src="../static/js/displayTimelineData.js"></script>
     <script src="../static/js/displayTransactionsCount.js"></script>
@@ -524,6 +523,7 @@
 
     <script src="../static/js/addMarker.js"></script>
     <script src="../static/js/initMap.js"></script>
+
 
     <script src="../static/js/app.js"></script>
 

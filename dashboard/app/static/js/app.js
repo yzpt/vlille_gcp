@@ -43,20 +43,26 @@ const alerts = [...alertList].map(element => new bootstrap.Alert(element))
 let currentInfoWindow = null;
 let selectedStation = stations[0];
 
-// displayBarChartData([0,0],[0,0]);
-// displayTimelineData([0,0],[0,0]);
 displayBarChartData([],[]);
 displayTimelineData([],[]);
 
+// Check if there's a selected value in local storage and apply the 'selected' class
+const storedValue = localStorage.getItem('selectedTimeline');
+if (storedValue) {
+    const selectedButton = document.querySelector(`[data-value="${storedValue}"]`);
+    if (selectedButton) {
+        selectedButton.classList.add('selected');
+    }
+}
 
 bq_loading_sumnbvelos.style.display = 'block';
-fetch('/get_timeline_sum/today')
+fetch('/get_timeline_sum/' + storedValue)
 	.then(function(response) {
 		return response.json();
 	})
 	.then(function(jsonResponse) {
 		bq_loading_sumnbvelos.style.display = 'none';
-		displaySumNbVelosDispo(jsonResponse.labels, jsonResponse.values, 'today');
+		displaySumNbVelosDispo(jsonResponse.labels, jsonResponse.values, storedValue);
 	}
 );
 
@@ -71,10 +77,10 @@ fetch('/get_transactions_count')
     });
     
 // Event listener for the timeline_sum_span dropdown change event
-document.getElementById("timeline_sum_span").addEventListener("change", () => {
-	bq_loading_sumnbvelos.style.display = 'block';
-	fetchDataForSumNbVelosDispo(document.getElementById("timeline_sum_span").value);
-});
+// document.getElementById("timeline_sum_span").addEventListener("change", () => {
+// 	bq_loading_sumnbvelos.style.display = 'block';
+// 	fetchDataForSumNbVelosDispo(document.getElementById("timeline_sum_span").value);
+// });
 
 
 // Event listener for the weekday dropdown change event
@@ -113,7 +119,7 @@ function handleButtonClick(event) {
     localStorage.setItem('selectedTimeline', selectedValue);
 
     // Perform actions based on the selected value (you can add your logic here)
-    console.log('Selected value:', selectedValue);
+    // console.log('Selected value:', selectedValue);
 }
 
 // Attach click event listeners to the buttons
@@ -121,11 +127,3 @@ buttons.forEach(button => {
     button.addEventListener('click', handleButtonClick);
 });
 
-// Check if there's a selected value in local storage and apply the 'selected' class
-const storedValue = localStorage.getItem('selectedTimeline');
-if (storedValue) {
-    const selectedButton = document.querySelector(`[data-value="${storedValue}"]`);
-    if (selectedButton) {
-        selectedButton.classList.add('selected');
-    }
-}

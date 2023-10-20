@@ -1,27 +1,49 @@
+:root {
+  --blue: #4285F4;
+  --blue2: #76A7FA;
+  --blue3: #A0C3FF;
+  
+  --red: #DB4437;
+  --red2: #E57368;
+  --red3: #ED9D97;
+
+  --green: #0F9D58;
+  --green2: #33B679;
+  --green3: #7BCFA9;
+
+  --yellow: #F4B400;
+  --yellow2: #FBCB43;
+  --yellow3: #FFE168;
+
+  --gray: #a9b5c9;
+  --text: #666;
+  --border: #e7e9ed;
+}
+
 /* Add your existing CSS styles for buttons here */
 .btn-timespan-group .btn-timespan {
   /* background-color: var(--blue); */
-  color: var(--blue);
-  border-color: var(--blue);
+  color: var(--blue2);
+  border-color: var(--blue2);
   margin: 0;
 }
 
 .btn-timespan-group .btn-timespan.selected {
-  background-color: var(--blue);
+  background-color: var(--blue2);
   color: white;
-  border-color: var(--blue);
+  border-color: var(--blue2);
 }
 
 /* Override Bootstrap's default styles for buttons */
 .btn-timespan-primary {
-  /* background-color: var(--blue); */
-  border-color: var(--blue);
+  /* background-color: var(--blue2); */
+  border-color: var(--blue2);
   color: white;
 }
 
 .btn-timespan-primary:hover {
-  background-color: var(--blue);
-  border-color: var(--blue);
+  background-color: var(--blue2);
+  border-color: var(--blue2);
   color: white;
 }
 
@@ -277,24 +299,4 @@
     display: none!important;
 }
 
-:root {
-    --blue: #4285F4;
-    --blue2: #76A7FA;
-    --blue3: #A0C3FF;
-    
-    --red: #DB4437;
-    --red2: #E57368;
-    --red3: #ED9D97;
 
-    --green: #0F9D58;
-    --green2: #33B679;
-    --green3: #7BCFA9;
-
-    --yellow: #F4B400;
-    --yellow2: #FBCB43;
-    --yellow3: #FFE168;
-
-    --gray: #a9b5c9;
-    --text: #666;
-    --border: #e7e9ed;
-}
