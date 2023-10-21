@@ -1,3 +1,5 @@
+<a href="https://dashboard-service-kogwvm6oba-od.a.run.app/">https://dashboard-service-kogwvm6oba-od.a.run.app/</a>
+
 # V'lille GCP
 
 Collecte des données de l'<a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom">API V'lille (Disponibilité en temps réel des stations)</a>, stockage et traitement sur GCP : Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker.
@@ -229,15 +231,14 @@ import json
 import pytz
 import os
 
-# Define variables for Cloud Functions
-bucket_name = 'vlille_gcp_data'
-project_name = 'vlille-gcp'
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille-gcp.json"
-
 url = 'https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&q=&rows=300&timezone=Europe%2FParis'
 paris_tz = pytz.timezone('Europe/Paris')
 str_time_paris = datetime.now(paris_tz).strftime('%Y-%m-%d_%H:%M:%S')
 
+# Define variables for Cloud Functions
+bucket_name = 'vlille_gcp_data'
+project_name = 'vlille-gcp'
 
 def get_json_data(url):
     # extract data from API
@@ -355,6 +356,10 @@ gcloud functions deploy vlille_scheduled_function --region=europe-west1 --runtim
 gcloud functions logs read vlille_scheduled_function --region=europe-west1
 ```
 
+## === ok l'insert realtime dans bigquery est propre 
+
+go transférer les données json récoltées depuis le 24 août dans les tables propres
+
 ## 3. Insert raw data in BigQuery table from json files on a GCS bucket
 
 From the august 25th, the data are collected in a GCS bucket without transformation (almost raw json format as provided by the V'Lille API). We need to insert these data in the BigQuery table vlille_gcp:vlille_gcp_dataset.records
@@ -449,59 +454,64 @@ SELECT record_timestamp, COUNT( DISTINCT station_id ) AS nb
 
 ```
 
-## 3. Flask dashboard (chats.js & google maps) + Docker + Cloud Run
 
-url : <a href="https://dashboard-service-kogwvm6oba-od.a.run.app/">https://dashboard-service-kogwvm6oba-od.a.run.app/</a>
+## 3. Docker Container + Cloud Run
 
-Using <a href="https://developers.google.com/maps/documentation/javascript/overview">Google API maps Javascript</a> and <a href="https://www.chartjs.org/">charts.js</a> to display the data from the BigQuery tables.
-
-### 3.1. Flask
-
-dashboard_app/<br>
-├── static/<br>
-│   ├── css/<br>
-│   │   ├── portal.css<br>
-│   │   └── style.css<br>
-│   ├── js/<br>
-│   │   ├── addMarker.js<br>
-│   │   ├── initMap.js<br>
-│   │   ├── app.js<br>
-│   │   ├── display[...].js<br>
-│   │   └── fetch[...].js<br>
-│   ├── images/<br>
-│   ├── plugins/<br>
-│   └── scss/<br>
-├── templates/<br>
-│   └── index.html<br>
-├── app.py<br>
-├── Dockerfile<br>
-├── GOOGLE_MAPS_API_KEY.txt<br>
-├── key-vlille-gcp.json<br>
-└── requirements.txt<br>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Transfert et modification du nom des fichiers json collectés.
 
 ### 3.1. Build du Docker Container
+
+job_load_file_on_gcs/<br>
+├── Dockerfile<br>
+├── requirements.txt<br>
+├── key-vlille.json<br>
+└── app.py
+
+
+
+
+  ------- A REFAIRE ! pas le bon script ---
+<!-- <details>
+  <summary>app.py</summary> -->
+
+* app.py
+
+```python
+import sys
+import os
+from google.cloud import storage
+from datetime import datetime
+import pytz
+from flask import Flask
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
+
+app = Flask(__name__)
+
+def upload_blob(bucket_name, source_file_name, destination_blob_name):
+    """Uploads a file to the bucket."""
+    try:
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(destination_blob_name)
+        blob.upload_from_filename(source_file_name)
+        print(f"File {source_file_name} uploaded to {destination_blob_name} in bucket {bucket_name}")
+    except Exception as e:
+        print(e)
+
+@app.route('/')
+def upload_file():
+    bucket_name             = "allo_bucket_yzpt"
+    source_file_name        = "file_to_load.txt"
+    destination_blob_name   = "loaded_file_" + datetime.now(pytz.timezone('Europe/Paris')).strftime("%Y%m%d_%H%M%S") + ".txt" 
+
+    upload_blob(bucket_name, source_file_name, destination_blob_name)
+    return "File upload complete: " + destination_blob_name
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=8080)
+```
+<!-- </details>  <br> -->
 
 ### 3.2. Push du Docker Container sur Artifact Registry
 

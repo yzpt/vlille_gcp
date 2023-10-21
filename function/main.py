@@ -7,14 +7,15 @@ import json
 import pytz
 import os
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille-gcp.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
 url = 'https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&q=&rows=300&timezone=Europe%2FParis'
 paris_tz = pytz.timezone('Europe/Paris')
 str_time_paris = datetime.now(paris_tz).strftime('%Y-%m-%d_%H:%M:%S')
 
 # Define variables for Cloud Functions
-bucket_name = 'vlille_gcp_data'
-project_name = 'vlille-gcp'
+bucket_name = 'yzpt-test-2659-bis-data'
+project_name = 'yzpt-test-2659-bis'
+dataset_id_from_SH = 'vlille_dataset'
 
 def get_json_data(url):
     # extract data from API
@@ -39,7 +40,7 @@ def store_data_json_to_gcs_bucket(data, bucket_name, str_time_paris):
 
 def insert_data_json_to_bigquery(data):
     client = bigquery.Client(project=project_name)
-    dataset_id = 'vlille_gcp_dataset'
+    dataset_id = dataset_id_from_SH
     table_id = 'records'
     table_ref = client.dataset(dataset_id).table(table_id)
     table = client.get_table(table_ref)  # API call

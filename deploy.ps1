@@ -38,7 +38,12 @@ $REGION = "europe-west1"
 # 011FA7-6A223F-37D9F8  Mon compte de facturation  True
 $BILLING_ACCOUNT_ID = "011FA7-6A223F-37D9F8"
 
-$function_folder = "function_2"
+$FUNCTION_FOLDER = "function"
+
+
+# gcloud projects delete $PROJECT_ID
+
+
 
 # ================================================================================ 
 
@@ -109,7 +114,8 @@ python create_tables.py $PROJECT_ID $DATASET_ID
 
 ### 2.1. Cloud Function :
 
-$pythonFilePath = ".\function_2\main.py"
+$pythonFilePath = $FUNCTION_FOLDER + "\main.py"
+
 
 # Read the content of the Python file
 $content = Get-Content -Path $pythonFilePath
@@ -122,7 +128,6 @@ $newContent = $newContent -replace 'dataset_id_from_SH = .*', "dataset_id_from_S
 # Write the modified content back to the Python file
 $newContent | Set-Content -Path $pythonFilePath
 
-$function_folder = "function_2"
 
 Compress-Archive -Path $function_folder\main.py, $function_folder\requirements.txt, $function_folder\key-vlille.json -DestinationPath cf-$PROJECT_ID.zip 
 
@@ -149,5 +154,4 @@ gcloud functions deploy $PROJECT_ID-scheduled-function --region=$REGION --runtim
 gcloud functions logs read $PROJECT_ID-scheduled-function --region=$REGION
 
 
-#  gcloud delete project
-# gcloud projects delete $PROJECT_ID
+

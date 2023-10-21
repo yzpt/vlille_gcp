@@ -49,9 +49,5 @@ function initMap() {
         }
 
     })
-    
-
 }
-
-
 
