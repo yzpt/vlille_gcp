@@ -357,7 +357,7 @@ gcloud functions logs read vlille_scheduled_function --region=europe-west1
 
 ## 3. Insert raw data in BigQuery table from json files on a GCS bucket
 
-From the august 25th, the data are collected in a GCS bucket without transformation (almost raw json format as provided by the V'Lille API). We need to insert these data in the BigQuery table vlille_gcp:vlille_gcp_dataset.records
+Since august 25th 2023, the data are collected in a GCS bucket without transformation (almost raw json format as provided by the V'Lille API). We need to insert these data in the BigQuery table vlille_gcp:vlille_gcp_dataset.records
 
 Scheme of the raw data :
 
