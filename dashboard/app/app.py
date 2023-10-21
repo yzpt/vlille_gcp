@@ -4,7 +4,6 @@ from google.cloud import bigquery
 import pandas as pd
 import os
 import requests
-import pytz
 
 app = Flask(__name__)
 
@@ -84,7 +83,6 @@ def get_station_infos(station_libelle):
     # Return the data as JSON
     return stations_data
     
-
 
 @app.route('/get_timeline_nbvelos/<station_libelle>/<span>', methods=['GET'])
 def get_timeline_nbvelos(station_libelle, span):
@@ -204,16 +202,6 @@ def sum_velos_dispos_last_24h(span):
     }
     return response_data
 
-    # if span == 'today':
-    #     while data[-1][0].date() < datetime.utcnow().date() + timedelta(days=1):
-    #         data.append((data[-1][0] + timedelta(minutes=1), None))
-
-    # response_data = {
-    #     'labels': [row[0] for row in data],
-    #     'values': [row[1] for row in data]
-    # }
-    # # return jsonify(response_data)
-    # return response_data
 
 def get_stations_pleines():
     query = f"""
@@ -348,52 +336,8 @@ def todays_transactions_count():
 
 
 
-
-@app.route('/get_nbvelosdispo', methods=['GET'])
-def sum_nbvelosdispo():
-    # get the today date without the hours
-    today = (datetime.utcnow() + timedelta(hours=2)).date()
-    print('today: ', today)
-    query = f"""
-            SELECT TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS record_timestamp_ptz, 
-                SUM(nb_velos_dispo) AS total_velos
-            FROM 
-                `vlille-gcp.vlille_gcp_dataset.records`
-            WHERE 
-                record_timestamp >= TIMESTAMP_SUB('{today}', INTERVAL 2 HOUR) 
-            GROUP BY 
-                record_timestamp_ptz
-            HAVING 
-                total_velos > 1500 AND total_velos < 2300
-            ORDER BY 
-                record_timestamp_ptz ASC;
-            """
-    
-    # Run the BigQuery query
-    query_job = client.query(query)
-    results = query_job.result()
-
-    # Process and return the results as needed
-    # data = [(row.datemiseajour, row.total_nbvelosdispo) for row in results]
-    data = [(row.record_timestamp_ptz, row.total_velos) for row in results if row.total_velos > 1500 and row.total_velos < 2300]
-
-    # Add missing rows for the missing minutes, aim: grid displaying missing when no data at HH:00 time
-    df = pd.DataFrame(data, columns=['record_timestamp_ptz', 'total_velos'])
-    df['record_timestamp_ptz'] = pd.to_datetime(df['record_timestamp_ptz']).dt.strftime('%Y-%m-%d %H:%M')
-    df['record_timestamp_ptz'] = pd.to_datetime(df['record_timestamp_ptz'])
-    df = add_missing_rows(df, 'record_timestamp_ptz', 'total_velos')
-    
-    # return two list: labels and values, respectively df['record_timestamp_ptz'] and df['total_velos']
-    response_data = {
-        'labels': [row for row in df['record_timestamp_ptz']],
-        'values': [row for row in df['total_velos']]
-    }
-    return response_data
-
-
-
+# Add missing rows for the missing minutes, aim: grid displaying missing when no data at HH:00 time
 def add_missing_rows(input_df, timestamp_column_str, value_column_str):
-
     new_rows = []
     for index, row in input_df.iterrows():
         if index < len(input_df) - 1:
@@ -413,9 +357,6 @@ def add_missing_rows(input_df, timestamp_column_str, value_column_str):
     # Sort the DataFrame by 'record_timestamp_ptz'
     new_df = new_df.sort_values(by=timestamp_column_str).reset_index(drop=True)
     return new_df
-
-
-
 
 
 if __name__ == '__main__':

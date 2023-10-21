@@ -5,6 +5,11 @@ zips/
 va/
 venv_2/
 venv_dashboard/
+docker_storage_copy_files/
+function_2/
+job_load_file_on_gcs/
+.vscode/
+
 
 key-vlille.json
 key-vlille-gcp.json
@@ -12,8 +17,14 @@ cf_get_data_and_store_to_gcs/key-vlille.json
 docker_storage_copy_files/key-vlille.json
 key-dataflow-sa-yzpt.json
 keyfile-zapart-data-vlille.json
+GOOGLE_MAPS_API_KEY.txt
+
 
 ./requirements.txt
 ./requirements_va.txt
 requirements_va.txt
 requirements_venv2.txt
+
+
+journal.sh
+pyspark_test.ipynb
