@@ -3,8 +3,16 @@
 Collecte des données de l'<a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom">API V'lille (Disponibilité en temps réel des stations)</a>, stockage et traitement sur GCP : Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker.
 
 L'objectif de ce projet consiste à interconnecter des services GCP couramment utilisés dans le traitement de la donnée.
+<p>
+    <img src="./vlille_diagram_SVG.svg" alt="drawing" width="800"/>
+</p>
 
-<img src="./vlille_diagram_SVG.svg" alt="drawing" width="800"/>
+<p align="center">
+    <a href="https://dashboard-service-kogwvm6oba-od.a.run.app/">
+            <img src="flask_dashboard.png" alt="drawing" width="800"/>
+            https://dashboard-service-kogwvm6oba-od.a.run.app/
+    </a>
+</p>
 
 Ressources :
 * <a href="https://cloud.google.com/sdk/docs?hl=fr">Documentation de la CLI Google CLoud</a>
@@ -449,55 +457,42 @@ SELECT record_timestamp, COUNT( DISTINCT station_id ) AS nb
 
 ```
 
-## 3. Flask dashboard (chats.js & google maps) + Docker + Cloud Run
+## 3. Flask dashboard (charts.js & google maps) + Docker + Cloud Run
 
-url : <a href="https://dashboard-service-kogwvm6oba-od.a.run.app/">https://dashboard-service-kogwvm6oba-od.a.run.app/</a>
+Using :
 
-Using <a href="https://developers.google.com/maps/documentation/javascript/overview">Google API maps Javascript</a> and <a href="https://www.chartjs.org/">charts.js</a> to display the data from the BigQuery tables.
+* <a href="https://developers.google.com/maps/documentation/javascript/overview">Google API maps Javascript</a>
+
+* <a href="https://www.chartjs.org/">Charts.js</a> to display the data from the BigQuery tables.
+
+* <a href="https://github.com/xriley/portal-theme-bs5">Portal Bootstrap 5 Theme</a> template.
 
 ### 3.1. Flask
 
-dashboard_app/<br>
-├── static/<br>
-│   ├── css/<br>
-│   │   ├── portal.css<br>
-│   │   └── style.css<br>
-│   ├── js/<br>
-│   │   ├── addMarker.js<br>
-│   │   ├── initMap.js<br>
-│   │   ├── app.js<br>
-│   │   ├── display[...].js<br>
-│   │   └── fetch[...].js<br>
-│   ├── images/<br>
-│   ├── plugins/<br>
-│   └── scss/<br>
-├── templates/<br>
-│   └── index.html<br>
-├── app.py<br>
-├── Dockerfile<br>
-├── GOOGLE_MAPS_API_KEY.txt<br>
-├── key-vlille-gcp.json<br>
-└── requirements.txt<br>
+``` txt
+dashboard_app/ 
+├── static/ 
+│   ├── css/ 
+│   ├── js/
+│   │   ├── addMarker.js    -- google maps
+│   │   ├── initMap.js      -- google maps
+│   │   ├── app.js          -- general js scripts
+│   │   ├── display[...].js -- charts.js
+│   │   └── fetch[...].js   -- chart.js
+│   ├── images/ 
+│   ├── plugins/ 
+│   └── scss/ 
+├── templates/ 
+│   └── index.html          
+├── app.py                  -- Flask app
+├── Dockerfile 
+├── GOOGLE_MAPS_API_KEY.txt 
+├── key-vlille-gcp.json 
+└── requirements.txt
+```
+Key elements of the app.py file :
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+* 
 
 
 
@@ -508,7 +503,6 @@ dashboard_app/<br>
 ```sh	
 # Définir les autorisations d'administrateur de l'Artifact Registry pour le compte de service
 gcloud projects add-iam-policy-binding vlille-gcp --member="serviceAccount:admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com" --role="roles/artifactregistry.admin"
-
 
 # création d'un dépôt sur Artifact Registry
 gcloud artifacts repositories create dashboard-repo --repository-format=docker --location=europe-west9
