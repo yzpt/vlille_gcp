@@ -657,6 +657,8 @@ app.py :
             #       ...
             
             df = pd.DataFrame(data, columns=['record_timestamp', 'total_bikes'])
+            
+            # steps to fill the 'holes' in the timeline:
             # cleaning timestamp column (remove seconds)
             df['record_timestamp'] = pd.to_datetime(df['record_timestamp']).dt.strftime('%Y-%m-%d %H:%M')
             # set timestamp as index
@@ -674,11 +676,9 @@ app.py :
                     'record_timestamp_ptz': df.iloc[-1]['record_timestamp_ptz'] + timedelta(minutes=1),
                     'total_bikes': None
                 }
-
                 # Concatenate the original DataFrame with the new row
                 df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                 count -= 1
-
 
             # return two list: labels and values, respectively df['record_timestamp_ptz'] and df['total_bikes']
             response_data = {
