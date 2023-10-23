@@ -6,14 +6,14 @@ function displayTransactionsCount(labels, values, values2) {
             labels: labels,
             datasets: [
                 {
-                    label: 'Vélos empruntés',
+                    label: 'Borrowed bikes',
                     data: values2,
                     backgroundColor: window.chartColors.green2,
                     borderColor: window.chartColors.green2,
                     borderWidth: 1
                 },
                 {
-                    label: 'Vélos retournés',
+                    label: 'Returned bikes',
                     data: values,
                     backgroundColor: window.chartColors.blue2,
                     borderColor: window.chartColors.blue2,
