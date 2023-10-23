@@ -1,8 +1,9 @@
 # V'lille GCP
 
-Collecte des données de l'<a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom">API V'lille (Disponibilité en temps réel des stations)</a>, stockage et traitement sur GCP : Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker.
+Collecting data from the <a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom">V'lille API (Real-time station availability)</a>, storing and processing it on GCP: Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker.
 
-L'objectif de ce projet consiste à interconnecter des services GCP couramment utilisés dans le traitement de la donnée.
+The goal of this project is to interconnect commonly used GCP services in data processing.
+
 <p>
     <img src="./vlille_diagram_SVG.svg" alt="drawing" width="800"/>
 </p>
@@ -15,72 +16,72 @@ L'objectif de ce projet consiste à interconnecter des services GCP couramment u
 </p>
 
 Ressources :
-* <a href="https://cloud.google.com/sdk/docs?hl=fr">Documentation de la CLI Google CLoud</a>
+* <a href="https://cloud.google.com/sdk/docs?hl=fr">Google Cloud CLI Documenttion</a>
 * <a href="https://github.com/googleapis/google-cloud-python">Google Cloud Client Library for Python</a>
 
 
 ## 1. Configuration GCP
 
-Créer un projet sur GCP après s'être authentifié sur google DSK cli
+Create a project on GCP after authenticating with Google Cloud CLI.
 
-```sh 
-# Création d'un nouveau projet gcloud
+```sh
+# Creating a new gcloud project
 gcloud projects create vlille-gcp
 
-# Liste des projets
+# List projects
 gcloud projects list
 
-# Activation du projet
+# Project activation
 gcloud config set project vlille-gcp
 
-# Création d'un compte de service
+# Creating a service account
 gcloud iam service-accounts create admin-vlille-gcp
 
-# Liste des comptes de services
+# List service accounts
 gcloud iam service-accounts list
 # admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com
 
-# Attribution des droits (bigquery admin) au compte de service
+# Granting permissions (bigquery admin) to the service account
 gcloud projects add-iam-policy-binding vlille-gcp --member="serviceAccount:admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com" --role="roles/bigquery.admin"
 
-# Attribution des droits (storage admin) au compte de service
+# Granting permissions (storage admin) to the service account
 gcloud projects add-iam-policy-binding vlille-gcp --member="serviceAccount:admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com" --role="roles/storage.admin"
 
-# Création d'une clé pour le compte de service
+# Creating a key for the service account
 gcloud iam service-accounts keys create key-vlille-gcp.json --iam-account=admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com
 
-# Attribution du compte de facturation au projet
+# Linking the billing account to the project
 gcloud alpha billing accounts list
 # ACCOUNT_ID            NAME                       OPEN  MASTER_ACCOUNT_ID
-# 012A63-E71939-70F754  Mon compte de facturation  True
+# 012A63-E71939-70F754  My Billing Account         True
 gcloud alpha billing projects link vlille-gcp --billing-account=012A63-E71939-70F754
 
 ```
 
-## 2. Collecte et stockage des données de l'API (Functions, Pub/Sub, Scheduler), BigQuery
+## 2. Data Collection and Storage from API (Functions, Pub/Sub, Scheduler), BigQuery
 
-Utilisation de Cloud Functions pour collecter les données de l'API V'lille et les stocker dans un bucket GCS ainsi que dans une table BigQuery, triggée chaque minute par un Pub/Sub + Scheduler.
+Using Cloud Functions to collect data from the V'lille API and store it in a GCS bucket as well as a BigQuery table, triggered every minute by Pub/Sub + Scheduler.
 
 ```sh
-# Activation des API : Build, Functions, Pub/Sub, Scheduler
+# Enabling APIs: Build, Functions, Pub/Sub, Scheduler
 gcloud services enable cloudbuild.googleapis.com
 gcloud services enable cloudfunctions.googleapis.com
 gcloud services enable pubsub.googleapis.com
 gcloud services enable cloudscheduler.googleapis.com
 
-# Création du bucket GCS de récolte des données
+# Creating GCS bucket for data collection
 gcloud storage buckets create gs://vlille_gcp_data
-# Création du bucket GCS de stockage de la fonction
+# Creating GCS bucket for function storage
 gcloud storage buckets create gs://vlille_gcp_bucket
 
-# Création d'un dataset BigQuery
+# Creating a BigQuery dataset
 bq mk vlille_gcp_dataset 
-# Dataset 'vlille-gcp:vlille_gcp_dataset' successfully created.
+# Dataset 'vlille-gcp:vlille_gcp_dataset' successfully created
 ```
 
-Création des tables BigQuery
+Creating the BigQuery tables (3 ways) :
 
-* Avec BigQuery UI :
+* Using BigQuery UI :
 
     ```SQL
     CREATE TABLE vlille_gcp_dataset.stations (
@@ -106,9 +107,9 @@ Création des tables BigQuery
     );
     ```
 
-* Ou gcloud CLI :
+* Using gcloud CLI :
 
-    On définit les schémas des tables :
+    Tables schemas :
 
     ```javascript
     // json_list_schema_stations.json
@@ -135,7 +136,7 @@ Création des tables BigQuery
     ]
     ```
 
-    Création des tables :
+    Creating the tables :
 
     ```sh
     bq mk --table vlille_gcp_dataset.stations json_list_schema_stations.json
@@ -143,7 +144,7 @@ Création des tables BigQuery
     bq mk --table vlille_gcp_dataset.records json_list_schema_records.json
     ```
 
-* Ou Python client, plus pratique ensuite pour alimenter une fois la table stations :
+* Or using Python client, more convenient for populating the stations table later:
 
     ```python
     from google.cloud import bigquery
@@ -187,7 +188,7 @@ Création des tables BigQuery
         "Created table {}.{}.{}".format(table.project, table.dataset_id, table.table_id)
     )
 
-    # On alimente la table stations une fois avec une requête:
+    # Populate the stations table once with a query:
     import requests
 
     url = "https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&rows=300&facet=libelle&facet=nom&facet=commune&facet=etat&facet=type&facet=etatconnexion"
@@ -218,12 +219,14 @@ Création des tables BigQuery
     
     ```
 
-### 2.1. Cloud Function : contenu et transfert du script
+### 2.1. Cloud Function : content and script transfert to GCS bucket
 
+```txt
 function/<br>
 ├── key-vlille-gcp.json<br>
 ├── requirements.txt<br>
 └── main.py
+```
 
 * main.py
 
@@ -317,49 +320,48 @@ if __name__ == "__main__":
     vlille_pubsub('data', 'context')
 ```
 
-Zip du dossier et transfert sur un bucket GCS :
+Zipping the Folder and Transferring to a GCS Bucket:
 
 ```sh
 Compress-Archive -Path function/main.py, function/requirements.txt, function/key-vlille-gcp.json -DestinationPath cloud-function-vlille-gcp.zip
 
-# Transfert du fichier cloud-function-vlille-gcp.zip
+# Transfer the cloud-function-vlille-gcp.zip file
 gsutil cp cloud-function-vlille-gcp.zip gs://vlille_gcp_bucket
 ```
 
-### 2.2. Topic Pub/Sub
+### 2.2. Pub/Sub Topic Creation:
 
 ```sh
-# Création d'un topic Pub/Sub cloud-function-trigger-vlille
+# Creating a Pub/Sub topic: cloud-function-trigger-vlille
 gcloud pubsub topics create cloud-function-trigger-vlille
 ```
 
 ### 2.3. Job scheduler
-  
-  ```sh
-  # Création d'un job scheduler qui envoie un message au topic Pub/Sub cloud-function-trigger-vlille chaque minute
-gcloud scheduler jobs create pubsub cf-vlille-minute --schedule="* * * * *" --topic=cloud-function-trigger-vlille --message-body="{Message du scheduler pubsub cf-vlille-minute}" --time-zone="Europe/Paris" --location=europe-west1 --description="Scheduler toutes les minutes" 
 
-  # Déclencher manuellement le job scheduler
-  gcloud scheduler jobs run cf-vlille-minute --location=europe-west1
+```sh
+# Creating a job scheduler that sends a message to the Pub/Sub topic cloud-function-trigger-vlille every minute
+gcloud scheduler jobs create pubsub cf-vlille-minute --schedule="* * * * *" --topic=cloud-function-trigger-vlille --message-body="{Message from the cf-vlille-minute Pub/Sub scheduler}" --time-zone="Europe/Paris" --location=europe-west1 --description="Scheduler every minute"
 
-  # Liste des jobs scheduler
-  gcloud scheduler jobs list
+# Manually triggering the job scheduler
+gcloud scheduler jobs run cf-vlille-minute --location=europe-west1
 
-  # Pause du job scheduler
-  gcloud scheduler jobs pause cf-vlille-minute --location=europe-west1
+# List of job schedulers
+gcloud scheduler jobs list
 
-  # Suppression du job scheduler
-  gcloud scheduler jobs delete cf-vlille-minute --location=europe-west1
+# Pausing the job scheduler
+gcloud scheduler jobs pause cf-vlille-minute --location=europe-west1
 
-  ```
+# Deleting the job scheduler
+gcloud scheduler jobs delete cf-vlille-minute --location=europe-west1
+```
 
-### 2.5. Déploiement Cloud Functions
+### 2.5. Cloud Functions Deployment:
   
 ```sh
-# Création d'une fonction cloud qui trigge sur le topic Pub/Sub cloud-function-trigger-vlille
+# Creating a Cloud Function triggered by the Pub/Sub topic cloud-function-trigger-vlille
 gcloud functions deploy vlille_scheduled_function --region=europe-west1 --runtime=python311 --trigger-topic=cloud-function-trigger-vlille --source=gs://vlille_gcp_bucket/cloud-function-vlille-gcp.zip --entry-point=vlille_pubsub
 
-# Logs :
+# Viewing logs:
 gcloud functions logs read vlille_scheduled_function --region=europe-west1
 ```
 
@@ -439,7 +441,6 @@ SELECT * FROM transformed_data;
 -- Query to remove all datas with: 
 --     record_timestamp < 2021-08-25  (for clean data)
 --     and record_timestamp >= 2021-10-04 (because the scheduled function started on the 2023-10-03's evening)
-
 DELETE FROM `vlille-gcp.vlille_gcp_dataset.records_from_raw`
 WHERE record_timestamp < TIMESTAMP('2023-08-25 00:00:00') OR record_timestamp >= TIMESTAMP('2023-10-04 00:00:00')
 
@@ -923,9 +924,3 @@ bq load --source_format=NEWLINE_DELIMITED_JSON vlille_dataset.vlille_table_direc
 # l'autodetect allonge le délai de traitement : 24 secs.
 bq load --source_format=NEWLINE_DELIMITED_JSON --autodetect vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json
 ```
-
-## 6. Dataviz
-
-https://pypi.org/project/flask-googlemaps/
-https://github.com/topics/flask-dashboard
-
