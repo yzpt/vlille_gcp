@@ -19,57 +19,53 @@ with open('GOOGLE_MAPS_API_KEY.txt', 'r') as f:
 def index():
     stations_infos = get_realtime_data()
     general_infos = {
-        "nb_velos_dispo":                   sum([station["nb_velos_dispo"] for station in stations_infos]),
-        "nb_places_dispo":                  sum([station["nb_places_dispo"] for station in stations_infos]),
-        "nb_stations_vides":                sum([(station["nb_velos_dispo"] == 0) and (station['etat'] == "EN SERVICE") for station in stations_infos]),
-        "nb_stations_pleines":              sum([(station["nb_places_dispo"] == 0) and (station['etat'] == "EN SERVICE") for station in stations_infos]),
-        "nb_stations_nbvelos_sup_to_0":     sum([station["nb_velos_dispo"] > 0 and (station['etat'] == "EN SERVICE") for station in stations_infos]),
-        "nb_stations_nbplaces_sup_to_0":    sum([(station["nb_places_dispo"] > 0) and (station['etat'] == "EN SERVICE") for station in stations_infos]),
-        "nb_stations_en_service":           sum([station["etat"] == "EN SERVICE" for station in stations_infos]),
-        "nb_stations_en_maintenance":       sum([station["etat"] == "IN_MAINTENANCE" for station in stations_infos]),
-        "nb_stations_reformees":            sum([station["etat"] == "RÉFORMÉ" for station in stations_infos]),        
-        "nb_sations_connectees":            sum([station["etat_connexion"] == "CONNECTÉE" for station in stations_infos]),
-        "nb_sations_deconnectees":          sum([station["etat_connexion"] == "DÉCONNECTÉ" for station in stations_infos])
+        "nb_available_bikes":                           sum([station["nb_available_bikes"] for station in stations_infos]),
+        "nb_available_places":                          sum([station["nb_available_places"] for station in stations_infos]),
+        "nb_empty_stations":                            sum([(station["nb_available_bikes"] == 0) and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
+        "nb_full_stations":                             sum([(station["nb_available_places"] == 0) and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
+        "nb_stations_w_n_bikes_greater_than_zero":      sum([station["nb_available_bikes"] > 0 and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
+        "nb_stations_w_n_places_greater_than_zero":     sum([(station["nb_available_places"] > 0) and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
+        "nb_stations_in_serice":                        sum([station["operational_state"] == "EN SERVICE" for station in stations_infos]),
+        "nb_stations_in_maintenance":                   sum([station["operational_state"] == "IN_MAINTENANCE" for station in stations_infos]),
+        "nb_stations_reformed":                         sum([station["operational_state"] == "RÉFORMÉ" for station in stations_infos]),        
     }
-    # dernieres_transactions  = get_transactions()
+    
     timeline_sum            = sum_velos_dispos_last_24h('today')
-    stations_vides        = [{"nom": station['nom'], "nb_velos_dispo": station['nb_velos_dispo']} for station in stations_infos if station['nb_velos_dispo'] == 0 and station['etat'] == "EN SERVICE"]
     
     return render_template('index.html', 
                             stations_infos  =   stations_infos,
                             general_infos   =   general_infos,
-                            # dernieres_transactions = dernieres_transactions,
                             timeline_sum = timeline_sum,
-                            stations_vides = stations_vides,
-                            todays_transactions_count = todays_transactions_count(),
+                            todays_loan_count = todays_loan_count(),
                             GOOGLE_MAPS_API_KEY = GOOGLE_MAPS_API_KEY
                            )
 
 
-def get_realtime_data(station_libelle=None):
+def get_realtime_data(station_id=None):
     response = requests.get("https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&rows=300")
     records = response.json()["records"]
 
     data = []
     for record in records:
         # Check if station_libelle is specified and matches the current station's libelle
-        if station_libelle and record["fields"]["libelle"].lower() != station_libelle.lower():
+        if station_id and record["fields"]["libelle"].lower() != station_id.lower():
             continue
         
         station = {}
-        station["nom"] = record["fields"]["nom"]
-        station["libelle"] = record["fields"]["libelle"]
-        station["adresse"] = record["fields"]["adresse"]
-        station["commune"] = record["fields"]["commune"]
-        station["type"] = record["fields"]["type"]
-        station["latitude"] = record["fields"]["localisation"][0]
-        station["longitude"] = record["fields"]["localisation"][1]
-        station["etat"] = record["fields"]["etat"]
-        station["nb_velos_dispo"] = record["fields"]["nbvelosdispo"]
-        station["nb_places_dispo"] = record["fields"]["nbplacesdispo"]
-        station["etat_connexion"] = record["fields"]["etatconnexion"]
-        station["derniere_maj"] = record["fields"]["datemiseajour"]
-        station["record_timestamp"] = record["record_timestamp"]
+        station["name"]                 = record["fields"]["nom"]
+        station["id"]                   = record["fields"]["libelle"]
+        station["adress"]               = record["fields"]["adresse"]
+        station["city"]                 = record["fields"]["commune"]
+        station["type"]                 = record["fields"]["type"]
+        station["latitude"]             = record["fields"]["localisation"][0]
+        station["longitude"]            = record["fields"]["localisation"][1]
+        station["operational_state"]    = record["fields"]["etat"]
+        station["nb_available_bikes"]   = record["fields"]["nbvelosdispo"]
+        station["nb_available_places"]  = record["fields"]["nbplacesdispo"]
+        station["connexion"]            = record["fields"]["etatconnexion"]
+        station["last_update"]          = record["fields"]["datemiseajour"]
+        station["record_timestamp"]     = record["record_timestamp"]
+        
         data.append(station)
     
     return data
@@ -96,8 +92,6 @@ def get_timeline_nbvelos(station_libelle, span):
     elif span == '7d':
         start_date = (datetime_now_ptz - timedelta(days=7)).date()
 
-    # Get the current date and time
-    # date_inf = datetime.utcnow() - timedelta(hours=24*int(nb_days_ago))
     query = f"""
             SELECT station_id, nb_velos_dispo, record_timestamp
             FROM `vlille-gcp.vlille_gcp_dataset.records`
@@ -145,7 +139,6 @@ def get_timeline_nbvelos(station_libelle, span):
 
 @app.route('/get_timeline_sum/<span>', methods=['GET'])
 def sum_velos_dispos_last_24h(span):
-    # twenty_four_hours_ago_datetime = datetime.utcnow() - timedelta(hours=24) 
     datetime_now_ptz = (datetime.utcnow() + timedelta(hours=2))
     
     if span == 'today':
@@ -154,8 +147,6 @@ def sum_velos_dispos_last_24h(span):
         start_date = (datetime_now_ptz - timedelta(hours=24))
     elif span == '7d':
         start_date = (datetime_now_ptz - timedelta(days=7)).date()
-
-    print('start_date: ', start_date)
 
     query = f"""
             SELECT 
@@ -326,12 +317,11 @@ def transactions_count():
     return (response_data)
 
 
-def todays_transactions_count():
+def todays_loan_count():
     data = transactions_count()
     sum = 0
     for i in range(0, len(data['values'])):
-        # sum += data['values'][i] + data['values2'][i]
-        sum += data['values'][i] # compte des emprunts uniquement
+        sum += data['values'][i] # summming only borrowed bikes
     return sum
 
 

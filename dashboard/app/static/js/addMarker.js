@@ -2,14 +2,14 @@
 function addMarker(station, map) {
     var markerColor = ''; // Initialize the marker color
 
-    // Determine the marker color based on nb_velos_dispo
-    if (station.etat === 'RÉFORMÉ') {
+    // Determine the marker color based on nb_available_bikes
+    if (station.operational_state === 'RÉFORMÉ') {
         markerColor = 'black';
-    } else if (station.etat === 'IN_MAINTENANCE') {
+    } else if (station.operational_state === 'IN_MAINTENANCE') {
         markerColor = 'purple';
-    } else if (station.nb_velos_dispo === 0) {
+    } else if (station.nb_available_bikes === 0) {
         markerColor = '#DB4437';
-    } else if (station.nb_velos_dispo >= 1 && station.nb_velos_dispo <= 4) {
+    } else if (station.nb_available_bikes >= 1 && station.nb_available_bikes <= 4) {
         markerColor = '#F4B400';
     } else if (station.nb_places_dispo == 0) {
         markerColor = '#4285F4';
@@ -29,19 +29,19 @@ function addMarker(station, map) {
     var marker = new google.maps.Marker({
         position: { lat: station.latitude, lng: station.longitude },
         map: map,
-        title: station.nom,
+        title: station.name,
         icon: markerIcon // Set the custom marker icon
     });
 
     // Add information as a content string to the marker
-    var contentString = '<div><strong>' + station.nom + '</strong><br>' +
-        'Adresse: ' + station.adresse + '<br>' +
-        'Commune: ' + station.commune + '<br>' +
-        'Etat: ' + station.etat + '<br>' +
-        'Connexion: ' + station.etat_connexion + '<br>' +
-        'Vélos: ' + station.nb_velos_dispo + '<br>' +
+    var contentString = '<div><strong>' + station.name + '</strong><br>' +
+        'Adress: ' + station.adress + '<br>' +
+        'City: ' + station.city + '<br>' +
+        'Op. state: ' + station.operational_state + '<br>' +
+        'Connexion: ' + station.connexion + '<br>' +
+        'Bikes: ' + station.nb_available_bikes + '<br>' +
         'Places: ' + station.nb_places_dispo + '<br>' +
-        'màj: ' + station.derniere_maj + '</div>';
+        'Updated: ' + station.last_update + '</div>';
 
     var infowindow = new google.maps.InfoWindow({
         content: contentString
@@ -49,7 +49,6 @@ function addMarker(station, map) {
 
     // Add a click event listener to display the information when the marker is clicked
     marker.addListener('click', function() {
-
         
         selectedStation = station;
 

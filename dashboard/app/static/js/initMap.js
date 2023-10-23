@@ -5,9 +5,7 @@ function initMap() {
         zoom: 12 // Adjust the zoom level as needed
     });
 
-    // Parse the JSON data passed from Flask and add markers to the map accordingly
-    console.log(stations);
-
+    // Add markers to the map
     for (var i = 0; i < stations.length; i++) {
         var station = stations[i];
         addMarker(station, map);
