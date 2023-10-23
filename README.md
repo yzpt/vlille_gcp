@@ -365,99 +365,6 @@ gcloud functions deploy vlille_scheduled_function --region=europe-west1 --runtim
 gcloud functions logs read vlille_scheduled_function --region=europe-west1
 ```
 
-## 3. Insert raw data in BigQuery table from json files on a GCS bucket
-
-Since august 25th 2023, the data are collected in a GCS bucket without transformation (almost raw json format as provided by the V'Lille API). We need to insert these data in the BigQuery table vlille_gcp:vlille_gcp_dataset.records
-
-Scheme of the raw data :
-
-* json_list_schema_raw_data.json
-
-```javascript
-[
-    {"name": "nhits",    "type": "INTEGER"},
-    {"name": "parameters",    "type": "RECORD",    "mode": "NULLABLE",    "fields": [
-        {"name": "dataset",        "type": "STRING"},
-        {"name": "timezone",        "type": "STRING"},
-        {"name": "rows",        "type": "INTEGER"},
-        {"name": "format",        "type": "STRING"},
-        {"name": "start",        "type": "INTEGER"}
-    ]},
-    {"name": "records",    "type": "RECORD",    "mode": "REPEATED",    "fields": [
-        {"name": "recordid",        "type": "STRING"},
-        {"name": "fields",        "type": "RECORD",        "mode": "NULLABLE",        "fields": [
-            {"name": "etatconnexion",            "type": "STRING"},
-            {"name": "nbplacesdispo",            "type": "INTEGER"},
-            {"name": "libelle",            "type": "STRING"},
-            {"name": "geo",            "type": "FLOAT",            "mode": "REPEATED"},
-            {"name": "etat",            "type": "STRING"},
-            {"name": "datemiseajour",            "type": "TIMESTAMP"},
-            {"name": "nbvelosdispo",            "type": "INTEGER"},
-            {"name": "adresse",            "type": "STRING"},
-            {"name": "localisation",            "type": "FLOAT",            "mode": "REPEATED"},
-            {"name": "type",            "type": "STRING"},
-            {"name": "nom",            "type": "STRING"},
-            {"name": "commune",            "type": "STRING"}
-        ]},
-        {"name": "record_timestamp",        "type": "TIMESTAMP"},
-        {"name": "datasetid",        "type": "STRING"},
-        {"name": "geometry",        "type": "RECORD",        "mode": "NULLABLE",        "fields": [
-            {"name": "type",            "type": "STRING"},
-            {"name": "coordinates",            "type": "FLOAT",            "mode": "REPEATED"}
-        ]}
-    ]}
-]
-```
-
-```sh
-# GCS bucket with raw files:    gs://vlille_data_json
-
-# Temporary raw table creation :
-bq mk --table vlille_gcp_dataset.raw_records json_list_schema_raw_data.json
-
-# load raw data from GCS bucket to BigQuery table
-bq load --source_format=NEWLINE_DELIMITED_JSON vlille_gcp_dataset.raw_records gs://vlille_data_json/*.json json_list_schema_raw_data.json
-```
-
-Query to transform the raw data in the BigQuery table vlille_gcp_dataset.raw_records to the BigQuery table vlille_gcp_dataset.records_from_raw :
-
-```SQL
-CREATE OR REPLACE TABLE `vlille-gcp.vlille_gcp_dataset.records_from_raw` AS
-WITH transformed_data AS (
-  SELECT
-    CAST(records.fields.libelle AS INT64) AS station_id,
-    records.fields.etat AS etat,
-    records.fields.nbvelosdispo AS nb_velos_dispo,
-    records.fields.nbplacesdispo AS nb_places_dispo,
-    records.fields.etatconnexion AS etat_connexion,
-    TIMESTAMP(records.fields.datemiseajour) AS derniere_maj,
-    TIMESTAMP(records.record_timestamp) AS record_timestamp
-  FROM
-    `vlille-gcp.vlille_gcp_dataset.raw_records`, UNNEST(records) AS records
-)
-SELECT * FROM transformed_data;
-
-
--- Query to remove all datas with: 
---     record_timestamp < 2021-08-25  (for clean data)
---     and record_timestamp >= 2021-10-04 (because the scheduled function started on the 2023-10-03's evening)
-DELETE FROM `vlille-gcp.vlille_gcp_dataset.records_from_raw`
-WHERE record_timestamp < TIMESTAMP('2023-08-25 00:00:00') OR record_timestamp >= TIMESTAMP('2023-10-04 00:00:00')
-
-
--- copy all rows from the temporary table records_from_raw to the table records
-INSERT INTO `vlille-gcp.vlille_gcp_dataset.records` (station_id, etat, nb_velos_dispo, nb_places_dispo, etat_connexion, derniere_maj, record_timestamp)
-SELECT * FROM `vlille-gcp.vlille_gcp_dataset.records_from_raw`
-
--- check wrong rows :
-SELECT record_timestamp, COUNT( DISTINCT station_id ) AS nb
-  FROM `vlille-gcp.vlille_gcp_dataset.records`
-  WHERE DATE(record_timestamp) = '2023-09-10'
-  GROUP BY record_timestamp
-  ORDER BY nb ASC;
-
-```
-
 ## 3. Flask dashboard (charts.js & google maps) + Docker + Cloud Run
 
 Using :
@@ -832,7 +739,102 @@ gcloud logging read "resource.type=cloud_run_revision AND resource.labels.servic
 gcloud run services delete dashboard-service --region europe-west9 -q
 ```
 
-## 4. Dataproc + PySpark
+## 4. Insert raw data in BigQuery table from json files on a GCS bucket
+
+Since august 25th 2023, the data are collected in a GCS bucket (gs://vlille_data_json) without transformation (almost raw json format as provided by the V'Lille API). We need to insert these data in the BigQuery table vlille_gcp:vlille_gcp_dataset.records
+
+Scheme of the raw data :
+
+* json_list_schema_raw_data.json
+
+```javascript
+[
+    {"name": "nhits",    "type": "INTEGER"},
+    {"name": "parameters",    "type": "RECORD",    "mode": "NULLABLE",    "fields": [
+        {"name": "dataset",        "type": "STRING"},
+        {"name": "timezone",        "type": "STRING"},
+        {"name": "rows",        "type": "INTEGER"},
+        {"name": "format",        "type": "STRING"},
+        {"name": "start",        "type": "INTEGER"}
+    ]},
+    {"name": "records",    "type": "RECORD",    "mode": "REPEATED",    "fields": [
+        {"name": "recordid",        "type": "STRING"},
+        {"name": "fields",        "type": "RECORD",        "mode": "NULLABLE",        "fields": [
+            {"name": "etatconnexion",            "type": "STRING"},
+            {"name": "nbplacesdispo",            "type": "INTEGER"},
+            {"name": "libelle",            "type": "STRING"},
+            {"name": "geo",            "type": "FLOAT",            "mode": "REPEATED"},
+            {"name": "etat",            "type": "STRING"},
+            {"name": "datemiseajour",            "type": "TIMESTAMP"},
+            {"name": "nbvelosdispo",            "type": "INTEGER"},
+            {"name": "adresse",            "type": "STRING"},
+            {"name": "localisation",            "type": "FLOAT",            "mode": "REPEATED"},
+            {"name": "type",            "type": "STRING"},
+            {"name": "nom",            "type": "STRING"},
+            {"name": "commune",            "type": "STRING"}
+        ]},
+        {"name": "record_timestamp",        "type": "TIMESTAMP"},
+        {"name": "datasetid",        "type": "STRING"},
+        {"name": "geometry",        "type": "RECORD",        "mode": "NULLABLE",        "fields": [
+            {"name": "type",            "type": "STRING"},
+            {"name": "coordinates",            "type": "FLOAT",            "mode": "REPEATED"}
+        ]}
+    ]}
+]
+```
+
+### 4.1. Using BigQuery
+
+```sh
+# GCS bucket with raw files:    gs://vlille_data_json
+
+# Temporary raw table creation :
+bq mk --table vlille_gcp_dataset.raw_records json_list_schema_raw_data.json
+
+# load raw data from GCS bucket to BigQuery table
+bq load --source_format=NEWLINE_DELIMITED_JSON vlille_gcp_dataset.raw_records gs://vlille_data_json/*.json json_list_schema_raw_data.json
+```
+
+* Queries :
+
+```SQL
+-- Query to transform the raw data in the BigQuery table vlille_gcp_dataset.raw_records to the BigQuery table vlille_gcp_dataset.records_from_raw :
+CREATE OR REPLACE TABLE `vlille-gcp.vlille_gcp_dataset.records_from_raw` AS
+WITH transformed_data AS (
+  SELECT
+    CAST(records.fields.libelle AS INT64) AS station_id,
+    records.fields.etat AS etat,
+    records.fields.nbvelosdispo AS nb_velos_dispo,
+    records.fields.nbplacesdispo AS nb_places_dispo,
+    records.fields.etatconnexion AS etat_connexion,
+    TIMESTAMP(records.fields.datemiseajour) AS derniere_maj,
+    TIMESTAMP(records.record_timestamp) AS record_timestamp
+  FROM
+    `vlille-gcp.vlille_gcp_dataset.raw_records`, UNNEST(records) AS records
+)
+SELECT * FROM transformed_data;
+
+-- Query to remove all datas with: 
+--     record_timestamp < 2021-08-25  (for clean data)
+--     and record_timestamp >= 2021-10-04 (because the scheduled function started on the 2023-10-03's evening)
+DELETE FROM `vlille-gcp.vlille_gcp_dataset.records_from_raw`
+WHERE record_timestamp < TIMESTAMP('2023-08-25 00:00:00') OR record_timestamp >= TIMESTAMP('2023-10-04 00:00:00')
+
+
+-- copy all rows from the temporary table records_from_raw to the table records
+INSERT INTO `vlille-gcp.vlille_gcp_dataset.records` (station_id, etat, nb_velos_dispo, nb_places_dispo, etat_connexion, derniere_maj, record_timestamp)
+SELECT * FROM `vlille-gcp.vlille_gcp_dataset.records_from_raw`
+
+-- check wrong rows :
+SELECT record_timestamp, COUNT( DISTINCT station_id ) AS nb
+  FROM `vlille-gcp.vlille_gcp_dataset.records`
+  WHERE DATE(record_timestamp) = '2023-09-10'
+  GROUP BY record_timestamp
+  ORDER BY nb ASC;
+
+```
+
+### 4.2. === à refaire === Using Dataproc / PySpark
 
 Chargement des données vers BigQuery avec Dataproc et PySpark.
 
@@ -893,6 +895,7 @@ spark.stop()
 <!-- </details>  <br> -->
 
 Cluster dataproc et éxécution du script :
+
 ```sh
 # Création d'un cluster Dataproc : 1 master, 7 workers n1-standard-2
 gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-2 --master-boot-disk-size 50 --num-workers 7 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
@@ -907,20 +910,4 @@ gcloud dataproc jobs submit pyspark gs://allo_bucket_yzpt/spark_gcs_to_bq_3.py -
 
 # Suppression du cluster
 gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --project vlille-396911 -q
-```
-
-## 5. Chargement direct du bucket depuis BigQuery
-
-Rapide.
-
-```sh
-# Création d'une table BigQuery
-bq mk --table vlille_dataset.vlille_table_direct_from_bq
-
-# Chargement des données récoltées dans le bucket vlille_json_data vers bigquery :
-bq load --source_format=NEWLINE_DELIMITED_JSON vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json json_list_schema.json
-# 16 secs (36k rows)
-
-# l'autodetect allonge le délai de traitement : 24 secs.
-bq load --source_format=NEWLINE_DELIMITED_JSON --autodetect vlille_dataset.vlille_table_direct_from_bq gs://vlille_data_json/*.json
 ```
