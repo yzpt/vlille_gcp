@@ -1,5 +1,5 @@
 function displayTimelineData(labels, values) {
-    var ctx = document.getElementById('canvas-timeline-nbvelos').getContext('2d');
+    var ctx = document.getElementById('canvas-timeline-bike-count').getContext('2d');
     lineChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -25,11 +25,6 @@ function displayTimelineData(labels, values) {
                 x: {
                     ticks: {
                         display: true,
-                        callback: function(value, index) {
-                            if (index % 100 === 0) {
-                                return value;
-                            }
-                        }
                     },
                     grid: {
                         display: true,

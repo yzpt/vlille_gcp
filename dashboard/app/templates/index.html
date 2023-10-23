@@ -101,7 +101,7 @@
                                     <h4 class="app-card-title">Bike count timeline</h4>
                                 </div><!--//col-->
                                 <div class="col-auto">
-                                    <select class="form-select form-select-sm ms-auto d-inline-flex w-auto" id="timeline_span_nbvelosdispo_form">
+                                    <select class="form-select form-select-sm ms-auto d-inline-flex w-auto" id="timeline_span_bike_count_form">
                                         <option value="today" selected>Today</option>
                                         <option value="24h">24h</option>
                                         <option value="7d">7d</option>
@@ -111,8 +111,8 @@
                         </div><!--//app-card-header-->
                         <div class="app-card-body p-3 p-lg-4">
                             <div class="chart-container">
-                                <canvas id="canvas-timeline-nbvelos" ></canvas>
-                                <div class="fade-container" id="bq_loading_timeline_nbvelos">
+                                <canvas id="canvas-timeline-bike-count" ></canvas>
+                                <div class="fade-container" id="bq_loading_timeline_bike_count">
                                     <div class="fading-div"></div>
                                 </div>
                             </div>
@@ -161,8 +161,8 @@
                         </div><!--//app-card-header-->
                         <div class="app-card-body p-3 p-lg-4">
                             <div class="chart-container">
-                                <canvas id="canvas-sum-nbvelosdispo" ></canvas>
-                                <div class="fade-container" id="bq_loading_sumnbvelos">
+                                <canvas id="canvas-total-bikes-timeline" ></canvas>
+                                <div class="fade-container" id="bq_loading_timeline_total_bikes">
                                     <div class="fading-div"></div>
                                 </div>
                             </div>
@@ -187,17 +187,17 @@
     
     <script src="../static/js/fetchDataForTimelineSpan.js"></script>
     <script src="../static/js/fetchDataForWeekday.js"></script>
-    <script src="../static/js/fetchDataForSumNbVelosDispo.js"></script>
+    <script src="../static/js/fetchDataForTotalBikesTimeline.js"></script>
     
     <script src="../static/js/displayBarChartData.js"></script>
     <script src="../static/js/displayTimelineData.js"></script>
     <script src="../static/js/displayTransactionsCount.js"></script>
-    <script src="../static/js/displaySumNbVelosDispo.js"></script>
+    <script src="../static/js/displayTotalBikesTimeline.js"></script>
     
     <script>
         var bq_loading_avg_hours = document.getElementById("bq_loading_avg_hours");
         var bq_loading_todays_transactions = document.getElementById("bq_loading_todays_transactions");
-        var bq_loading_timeline_nbvelos = document.getElementById("bq_loading_timeline_nbvelos");
+        var bq_loading_timeline_bike_count = document.getElementById("bq_loading_timeline_bike_count");
     </script>
 
 

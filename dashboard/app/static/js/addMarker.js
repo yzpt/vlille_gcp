@@ -56,8 +56,8 @@ function addMarker(station, map) {
         bq_loading_avg_hours.style.display = 'block';
         fetchDataForWeekday(station, selectedWeekday);
 
-        const selectedSpan = document.getElementById("timeline_span_nbvelosdispo_form").value;
-        bq_loading_timeline_nbvelos.style.display = 'block';
+        const selectedSpan = document.getElementById("timeline_span_bike_count_form").value;
+        bq_loading_timeline_bike_count.style.display = 'block';
         fetchDataForTimelineSpan(station, selectedSpan);
 
         // Close the currently open info window, if any

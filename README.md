@@ -688,43 +688,146 @@ app.py :
             return response_data
     ```
 
+* Example of chart.js configuration : Total bikes available timeline chart, ticks and grid configuration are updated according to the selected span (today, 24h, 7d)
 
+    ```javascript
+    function displayTotalBikesTimeline(labels, values, span) {
+        var ctx = document.getElementById('canvas-total-bikes-timeline').getContext('2d');
+        sumNbVelosDispoChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Total bikes available',
+                        fill: false,
+                        data: values,
+                        stepped: true,
+                        backgroundColor: window.chartColors.blue2,
+                        borderColor: window.chartColors.blue2,
+                        pointStyle: false,
+                        borderWidth: 1.5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                // maintainAspectRatio: false,
+                // aspectRatio: 3,
+                scales: {
+                    x: {
+                        // Update the chart ticks according to the selected span
+                        ticks: {
+                            callback: function(value, index, values) {
+                                const currentLabel = this.getLabelForValue(value);
+                                const dateObj = new Date(currentLabel);
+                                // labels shifted by 2 hours
+                                dateObj.setHours(dateObj.getHours() - 2 );
 
-### 3.1. Build du Docker Container
+                                const month = (dateObj.getMonth() + 1 < 10) ? `0${dateObj.getMonth() + 1}` : `${dateObj.getMonth() + 1}`;
+                                const day = (dateObj.getDate() < 10) ? `0${dateObj.getDate()}` : `${dateObj.getDate()}`;
+                                const hour = (dateObj.getHours() < 10) ? `0${dateObj.getHours()}` : `${dateObj.getHours()}`;
+                                const minute = (dateObj.getMinutes() < 10) ? `0${dateObj.getMinutes()}` : `${dateObj.getMinutes()}`;
 
-### 3.2. Push du Docker Container sur Artifact Registry
+                                // only displaying the ticks/grid for the first hour of each 3 hours for day-span
+                                if (span === 'today' || span === '24h') {
+                                    if (minute === '00') {
+                                        if (hour == '00' || hour == '03' || hour == '06' || hour == '09' || hour == '12' || hour == '15' || hour == '18' || hour == '21') {
+                                            return `${hour}h`;
+                                        }
+                                    }
+                                } else if (span === '7d') {
+                                // only displaying the ticks/grid for the first hour of each day for week-span
+                                    if (minute === '00') {
+                                        if (hour == '00') {
+                                            return `${day}/${month}`;
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    },
+                    y: {
+                        ticks: {
+                            display: true
+                        },
+                        grid: {
+                            display: true,
+                            drawBorder: true
+                        },
+                        beginAtZero: false
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: true
+                    }
+                }
+            }
+        });
+    }
+    ```
 
-```sh	
-# Définir les autorisations d'administrateur de l'Artifact Registry pour le compte de service
-gcloud projects add-iam-policy-binding vlille-gcp --member="serviceAccount:admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com" --role="roles/artifactregistry.admin"
+### 3.2. Docker's container build & push to GCP Artifact Registry
 
-# création d'un dépôt sur Artifact Registry
-gcloud artifacts repositories create dashboard-repo --repository-format=docker --location=europe-west9
+* Dockerfile
 
-# Authentification Docker/GCP
-gcloud auth configure-docker europe-west9-docker.pkg.dev
+```dockerfile
+# Use an official Python runtime as a parent image
+FROM python:3.10-slim
 
-# build du container Docker
-docker build -t europe-west9-docker.pkg.dev/vlille-gcp/dashboard-repo/dashboard-container .
+WORKDIR /app
 
-# Push Docker --> GCP Artifact Registry
-docker push europe-west9-docker.pkg.dev/vlille-gcp/dashboard-repo/dashboard-container
+COPY . /app
 
+# Install any needed packages specified in requirements.txt
+RUN pip3 install -r requirements.txt
+
+# Make port 8080 available to the world outside this container
+EXPOSE 8080
+
+# Run your script when the container launches
+CMD ["python3", "app.py"]
 ```
 
-### 3.3. Run du container
+* build :
 
 ```sh
-# Attribution des droits (run admin) au compte de service
+docker build -t europe-west9-docker.pkg.dev/vlille-gcp/dashboard-repo/dashboard-container dashboard/app/
+```
+
+* Push to GCP Artifact Registry :
+
+```sh
+# Set Artifact Registry administrator permissions for the service account
+gcloud projects add-iam-policy-binding vlille-gcp --member="serviceAccount:admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com" --role="roles/artifactregistry.admin"
+
+# Create a repository on Artifact Registry
+gcloud artifacts repositories create dashboard-repo --repository-format=docker --location=europe-west9
+
+# Docker/GCP Authentication
+gcloud auth configure-docker europe-west9-docker.pkg.dev
+
+# Push Docker to GCP Artifact Registry
+docker push europe-west9-docker.pkg.dev/vlille-gcp/dashboard-repo/dashboard-container
+```
+
+### 3.3. Cloud Run deployment
+
+```sh
+# Granting permissions (run admin) to the service account
 gcloud projects add-iam-policy-binding vlille-gcp --member="serviceAccount:admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com" --role="roles/run.admin"
 
-# Création d'un service Cloud Run
+# Creating a Cloud Run service
 gcloud run deploy dashboard-service --image europe-west9-docker.pkg.dev/vlille-gcp/dashboard-repo/dashboard-container --region europe-west9 --platform managed --allow-unauthenticated
 
-# Logs :
-gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=dashboard-service" 
+# Logs:
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=dashboard-service"
 
-# suppression du service Cloud Run
+# Deleting the Cloud Run service
 gcloud run services delete dashboard-service --region europe-west9 -q
 ```
 

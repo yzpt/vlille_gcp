@@ -55,14 +55,14 @@ if (storedValue) {
     }
 }
 
-bq_loading_sumnbvelos.style.display = 'block';
+bq_loading_timeline_total_bikes.style.display = 'block';
 fetch('/get_timeline_sum/' + storedValue)
 	.then(function(response) {
 		return response.json();
 	})
 	.then(function(jsonResponse) {
-		bq_loading_sumnbvelos.style.display = 'none';
-		displaySumNbVelosDispo(jsonResponse.labels, jsonResponse.values, storedValue);
+		bq_loading_timeline_total_bikes.style.display = 'none';
+		displayTotalBikesTimeline(jsonResponse.labels, jsonResponse.values, storedValue);
 	}
 );
 
@@ -76,12 +76,6 @@ fetch('/get_transactions_count')
         displayTransactionsCount(jsonResponse.labels, jsonResponse.values, jsonResponse.values2);
     });
     
-// Event listener for the timeline_sum_span dropdown change event
-// document.getElementById("timeline_sum_span").addEventListener("change", () => {
-// 	bq_loading_sumnbvelos.style.display = 'block';
-// 	fetchDataForSumNbVelosDispo(document.getElementById("timeline_sum_span").value);
-// });
-
 
 // Event listener for the weekday dropdown change event
 document.getElementById("weekday_form").addEventListener("change", () => {
@@ -90,9 +84,9 @@ document.getElementById("weekday_form").addEventListener("change", () => {
 });
 
 // Event listener for the timeline span dropdown change event
-document.getElementById("timeline_span_nbvelosdispo_form").addEventListener("change", () => {
-	bq_loading_timeline_nbvelos.style.display = 'block';
-    fetchDataForTimelineSpan(selectedStation, document.getElementById("timeline_span_nbvelosdispo_form").value);
+document.getElementById("timeline_span_bike_count_form").addEventListener("change", () => {
+	bq_loading_timeline_bike_count.style.display = 'block';
+    fetchDataForTimelineSpan(selectedStation, document.getElementById("timeline_span_bike_count_form").value);
 });
 
 
@@ -103,8 +97,8 @@ const buttons = document.querySelectorAll('.btn-timespan-group .btn-timespan');
 
 // Function to handle button clicks
 function handleButtonClick(event) {
-	bq_loading_sumnbvelos.style.display = 'block';
-	fetchDataForSumNbVelosDispo(event.target.getAttribute('data-value'));
+	bq_loading_timeline_total_bikes.style.display = 'block';
+	fetchDataForTotalBikesTimeline(event.target.getAttribute('data-value'));
 
     // Remove the 'selected' class from all buttons
     buttons.forEach(button => {
