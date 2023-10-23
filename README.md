@@ -20,7 +20,7 @@ Ressources :
 * <a href="https://github.com/googleapis/google-cloud-python">Google Cloud Client Library for Python</a>
 
 
-## 1. Configuration GCP
+## 1. GCP Project Creation and Configuration
 
 Create a project on GCP after authenticating with Google Cloud CLI.
 
