@@ -6,7 +6,7 @@ function displayTimelineData(labels, values) {
             labels: labels,
             datasets: [
                 {
-                    label: 'nb_velos_dispo',
+                    label: 'Bike count',
                     fill: false,
                     data: values,
                     stepped: true,

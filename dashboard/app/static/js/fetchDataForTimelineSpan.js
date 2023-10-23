@@ -2,7 +2,7 @@
 async function fetchDataForTimelineSpan(station, selectedSpan) {
     
     // API endpoint URL with selected weekday value
-    const apiUrl = `/get_timeline_nbvelos/${station.libelle}/${selectedSpan}`;  
+    const apiUrl = `/get_timeline_nbvelos/${station.id}/${selectedSpan}`;  
     
     try {
         fetch(apiUrl)

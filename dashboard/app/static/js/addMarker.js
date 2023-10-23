@@ -40,7 +40,7 @@ function addMarker(station, map) {
         'Op. state: ' + station.operational_state + '<br>' +
         'Connexion: ' + station.connexion + '<br>' +
         'Bikes: ' + station.nb_available_bikes + '<br>' +
-        'Places: ' + station.nb_places_dispo + '<br>' +
+        'Places: ' + station.nb_available_places + '<br>' +
         'Updated: ' + station.last_update + '</div>';
 
     var infowindow = new google.maps.InfoWindow({

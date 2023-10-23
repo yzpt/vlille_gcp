@@ -477,22 +477,216 @@ dashboard_app/
 │   │   ├── addMarker.js    -- google maps
 │   │   ├── initMap.js      -- google maps
 │   │   ├── app.js          -- general js scripts
-│   │   ├── display[...].js -- charts.js
+│   │   ├── display[...].js -- chart.js
 │   │   └── fetch[...].js   -- chart.js
 │   ├── images/ 
 │   ├── plugins/ 
 │   └── scss/ 
 ├── templates/ 
 │   └── index.html          
-├── app.py                  -- Flask app
+├── app.py                  -- Flask API
 ├── Dockerfile 
 ├── GOOGLE_MAPS_API_KEY.txt 
 ├── key-vlille-gcp.json 
 └── requirements.txt
 ```
-Key elements of the app.py file :
 
-* 
+app.py :
+
+* On the entry point, we request the data from the bike sharing service API and render the dashboard's template index.html
+
+    ```python
+    from datetime import datetime, timedelta
+    from flask import Flask, render_template, request, jsonify
+    from google.cloud import bigquery
+    import pandas as pd
+    import os
+    import requests
+
+    project_id = "vlille-gcp"
+    dataset_name = "vlille_gcp_dataset"
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-" + project_id + ".json"
+    GOOGLE_MAPS_API_KEY = "your_google_maps_api_key"
+
+    client = bigquery.Client()
+
+    app = Flask(__name__)
+
+    @app.route('/')
+    def index():
+        # Real-time stations infos are requested from the bike sharing service API, and stored in the variable stations_infos via the get_realtime_data call. 
+        # Data is used by the google maps API for displaying markers and stations informations on the map
+        stations_infos = get_realtime_data()
+        
+        # General stats for html displaying
+        general_infos = {
+            "nb_available_bikes":                           sum([station["nb_available_bikes"] for station in stations_infos]),
+            "nb_available_places":                          sum([station["nb_available_places"] for station in stations_infos]),
+            "nb_empty_stations":                            sum([(station["nb_available_bikes"] == 0) and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
+            "nb_full_stations":                             sum([(station["nb_available_places"] == 0) and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
+            "nb_stations_w_n_bikes_greater_than_zero":      sum([station["nb_available_bikes"] > 0 and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
+            "nb_stations_w_n_places_greater_than_zero":     sum([(station["nb_available_places"] > 0) and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
+            "nb_stations_in_serice":                        sum([station["operational_state"] == "EN SERVICE" for station in stations_infos]),
+            "nb_stations_in_maintenance":                   sum([station["operational_state"] == "IN_MAINTENANCE" for station in stations_infos]),
+            "nb_stations_reformed":                         sum([station["operational_state"] == "RÉFORMÉ" for station in stations_infos]),
+            "todays_loan_count":                            todays_loan_count(),
+        }
+        
+        return render_template('index.html', 
+                                stations_infos  =   stations_infos,
+                                general_infos   =   general_infos,
+                                GOOGLE_MAPS_API_KEY = GOOGLE_MAPS_API_KEY
+                            )
+    ```
+
+* get_realtime_data() : request the data from the bike sharing service API
+
+    ```python
+    def get_realtime_data(station_id=None):
+        response = requests.get("https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&rows=300")
+        records = response.json()["records"]
+
+        data = []
+        for record in records:
+            # Check if station_id is specified and matches the current station's libelle
+            if station_id and record["fields"]["libelle"].lower() != station_id.lower():
+                continue
+            
+            station = {}
+            station["name"]                 = record["fields"]["nom"]
+            station["id"]                   = record["fields"]["libelle"]
+            station["adress"]               = record["fields"]["adresse"]
+            station["city"]                 = record["fields"]["commune"]
+            station["type"]                 = record["fields"]["type"]
+            station["latitude"]             = record["fields"]["localisation"][0]
+            station["longitude"]            = record["fields"]["localisation"][1]
+            station["operational_state"]    = record["fields"]["etat"]
+            station["nb_available_bikes"]   = record["fields"]["nbvelosdispo"]
+            station["nb_available_places"]  = record["fields"]["nbplacesdispo"]
+            station["connexion"]            = record["fields"]["etatconnexion"]
+            station["last_update"]          = record["fields"]["datemiseajour"]
+            station["record_timestamp"]     = record["record_timestamp"]
+            
+            data.append(station)
+        
+        return data
+    ```
+
+* The others endpoints request the Bigquery tables for the charts, here for example the transactions count by hour of day :
+
+    ```python
+    @app.route('/get_transactions_count', methods=['GET'])
+    def transactions_count():
+        today = datetime.utcnow()
+
+        # The requets build CTEs to compare the bikes count of each stations, function of the record_timestamp, with the previous one
+        # Then the transactions are calculated by substracting the current bikes count with the previous one
+        # Finally, the transactions are grouped by hour of day and the sum of positive and negative transactions are calculated
+
+        query = f"""
+                WITH ComparisonTable AS (
+                    SELECT
+                        station_id,
+                        TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS date, -- Convert to Paris timezone
+                        nb_velos_dispo AS current_bikes_count,
+                        LAG(nb_velos_dispo, 1) OVER (PARTITION BY station_id ORDER BY record_timestamp) AS previous_bike_count
+                    FROM
+                        `{project_id}.{dataset_name}.records`
+                    WHERE EXTRACT(DATE FROM TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR)) = DATE('{today}', 'Europe/Paris') -- Paris date
+                    ), TransactionsTable AS (
+                    SELECT
+                        station_id,
+                        date,
+                        IFNULL(previous_bike_count, 0) - current_bikes_count AS transaction_value
+                    FROM
+                        ComparisonTable
+                    WHERE
+                        previous_bike_count IS NOT NULL
+                        AND (IFNULL(previous_bike_count, 0) - current_bikes_count) <> 0
+                    ), RankedTransaCtions AS (
+                    SELECT
+                        station_id, 
+                        EXTRACT(HOUR FROM date) AS hour_of_day, 
+                        transaction_value
+                    FROM
+                        TransactionsTable
+                    )
+
+                    SELECT
+                        hour_of_day,
+                        SUM(IF(transaction_value > 0, transaction_value, 0)) AS sum_positive_transactions,
+                        SUM(IF(transaction_value < 0, -transaction_value, 0)) AS sum_negative_transactions
+                    FROM
+                        RankedTransactions
+                    GROUP BY
+                        hour_of_day
+                    ORDER BY
+                        hour_of_day;
+                """
+        
+        # Run the BigQuery query
+        query_job = client.query(query)
+        results = query_job.result()
+
+        # Process and return the results as needed
+        data = [(row.hour_of_day, row.sum_positive_transactions, row.sum_negative_transactions) for row in results]
+        while len(data) < 24:
+            data.append((len(data), 0, 0, 0))
+        
+        response_data = {
+            # records_timestamp_ptz
+            'labels': [row[0] for row in data],
+
+            # count of positive transactions : bikes returned
+            'values': [row[1] for row in data],
+
+            # count of negative transactions : bikes loaned
+            'values2': [row[2] for row in data]
+        }
+        return (response_data)
+    ```
+
+* There is a need of filling missing values for displaying timeseries charts without holes. Using pandas :
+
+    ```python
+        @app.route('/get_timeline_sum/<span>', methods=['GET'])
+        def total_bikes_count(span):
+            
+            #       ... 
+            # [BigQuery query] 
+            #       ...
+            
+            df = pd.DataFrame(data, columns=['record_timestamp', 'total_bikes'])
+            # cleaning timestamp column (remove seconds)
+            df['record_timestamp'] = pd.to_datetime(df['record_timestamp']).dt.strftime('%Y-%m-%d %H:%M')
+            # set timestamp as index
+            df.index = pd.to_datetime(df['record_timestamp'])
+            # remove duplicates
+            df = df.groupby(df.index).first()
+            # resample to 1min and fill missing values
+            df = df.resample('1min').ffill()
+
+            # fill missing values at the end of the day when needed (case span == 'today')
+            count = 1440 - len(df)
+            while count > 0:
+                # add a row with timestamp+1minute, total_bikes=None
+                new_row = {
+                    'record_timestamp_ptz': df.iloc[-1]['record_timestamp_ptz'] + timedelta(minutes=1),
+                    'total_bikes': None
+                }
+
+                # Concatenate the original DataFrame with the new row
+                df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+                count -= 1
+
+
+            # return two list: labels and values, respectively df['record_timestamp_ptz'] and df['total_bikes']
+            response_data = {
+                'labels': [row for row in df['record_timestamp_ptz']],
+                'values': [row for row in df['total_bikes']]
+            }
+            return response_data
+    ```
 
 
 

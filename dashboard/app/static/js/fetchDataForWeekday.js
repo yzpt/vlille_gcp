@@ -2,7 +2,7 @@
 async function fetchDataForWeekday(station, selectedWeekday) {
     
     // API endpoint URL with selected weekday value
-    const apiUrl = `/get_avg_bars/${station.libelle}/${selectedWeekday}`;  
+    const apiUrl = `/get_avg_bars/${station.id}/${selectedWeekday}`;  
     
     try {
         fetch(apiUrl)
