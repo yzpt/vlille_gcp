@@ -1,9 +1,9 @@
 [
-    {"name": "station_id",       "type": "INT64"},
-    {"name": "etat",             "type": "STRING"},
-    {"name": "nb_velos_dispo",   "type": "INT64"},
-    {"name": "nb_places_dispo",  "type": "INT64"},
-    {"name": "etat_connexion",   "type": "STRING"},
-    {"name": "derniere_maj",     "type": "TIMESTAMP"},
-    {"name": "record_timestamp", "type": "TIMESTAMP"}
+    {"name": "station_id",          "type": "INT64"},
+    {"name": "operational_state",   "type": "STRING"},
+    {"name": "nb_available_bikes",  "type": "INT64"},
+    {"name": "nb_available_places", "type": "INT64"},
+    {"name": "connexion",           "type": "STRING"},
+    {"name": "last_update",         "type": "TIMESTAMP"},
+    {"name": "record_timestamp",    "type": "TIMESTAMP"}
 ]
