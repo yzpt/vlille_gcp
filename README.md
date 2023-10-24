@@ -81,143 +81,152 @@ bq mk vlille_gcp_dataset
 
 Creating the BigQuery tables (3 ways) :
 
-* Using BigQuery UI :
+* 1st way : using BigQuery UI :
 
-    ```SQL
-    CREATE TABLE vlille_gcp_dataset.stations (
-        id INT64,
-        nom STRING,
-        libelle STRING,
-        adresse STRING,
-        commune STRING,
-        type STRING,
-        latitude FLOAT64,
-        longitude FLOAT64
-    );
+```SQL
+CREATE TABLE vlille_gcp_dataset.stations (
+    id INT64,
+    name STRING,
+    libelle STRING,
+    adress STRING,
+    city STRING,
+    type STRING,
+    latitude FLOAT64,
+    longitude FLOAT64
+);
 
 
-    CREATE TABLE vlille_gcp_dataset.records (
-        station_id INT64,
-        etat STRING,
-        nb_velos_dispo INT64,
-        nb_places_dispo INT64,
-        etat_connexion STRING,
-        derniere_maj TIMESTAMP,
-        record_timestamp TIMESTAMP
-    );
-    ```
+CREATE TABLE vlille_gcp_dataset.records (
+    station_id INT64,
+    operational_state STRING,
+    nb_available_bikes INT64,
+    nb_available_places INT64,
+    connexion STRING,
+    last_update TIMESTAMP,
+    record_timestamp TIMESTAMP
+);
+```
 
-* Using gcloud CLI :
+* 2nd way : using gcloud CLI :
 
-    Tables schemas :
+Tables schemas :
 
-    ```javascript
-    // json_list_schema_stations.json
-    [
-        {"name": "id",       "type": "INT64"},
-        {"name": "nom",      "type": "STRING"},
-        {"name": "libelle",  "type": "STRING"},
-        {"name": "adresse",  "type": "STRING"},
-        {"name": "commune",  "type": "STRING"},
-        {"name": "type",     "type": "STRING"},
-        {"name": "latitude", "type": "FLOAT64"},
-        {"name": "longitude","type": "FLOAT64"}
-    ]
+```javascript
+// json_list_schema_stations.json
+[
+    {"name": "id",                  "type": "INT64"},
+    {"name": "name",                "type": "STRING"},
+    {"name": "libelle",             "type": "STRING"},
+    {"name": "adress",              "type": "STRING"},
+    {"name": "city",                "type": "STRING"},
+    {"name": "type",                "type": "STRING"},
+    {"name": "latitude",            "type": "FLOAT64"},
+    {"name": "longitude",           "type": "FLOAT64"}
+]
 
-    // json_list_schema_records.json
-    [
-        {"name": "station_id",       "type": "INT64"},
-        {"name": "etat",             "type": "STRING"},
-        {"name": "nb_velos_dispo",   "type": "INT64"},
-        {"name": "nb_places_dispo",  "type": "INT64"},
-        {"name": "etat_connexion",   "type": "STRING"},
-        {"name": "derniere_maj",     "type": "TIMESTAMP"},
-        {"name": "record_timestamp", "type": "TIMESTAMP"}
-    ]
-    ```
+// json_list_schema_records.json
+[
+    {"name": "station_id",          "type": "INT64"},
+    {"name": "operational_state",   "type": "STRING"},
+    {"name": "nb_available_bikes",  "type": "INT64"},
+    {"name": "nb_available_places", "type": "INT64"},
+    {"name": "connexion",           "type": "STRING"},
+    {"name": "last_update",         "type": "TIMESTAMP"},
+    {"name": "record_timestamp",    "type": "TIMESTAMP"}
+]
+```
 
-    Creating the tables :
+Creating the tables :
 
-    ```sh
-    bq mk --table vlille_gcp_dataset.stations json_list_schema_stations.json
+```sh
+bq mk --table vlille_gcp_dataset.stations json_list_schema_stations.json
 
-    bq mk --table vlille_gcp_dataset.records json_list_schema_records.json
-    ```
+bq mk --table vlille_gcp_dataset.records json_list_schema_records.json
+```
 
-* Or using Python client, more convenient for populating the stations table later:
+* rd way : using Python client, more convenient for populating the stations table :
 
-    ```python
-    from google.cloud import bigquery
-    import os
+```python
+from google.cloud import bigquery
+import requests
+import os
+import sys
 
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille-gcp.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
 
-    client = bigquery.Client()
+client = bigquery.Client()
 
-    # Create a 'stations' table
-    table_id = "vlille-gcp.vlille_gcp_dataset.stations"
-    schema = [
-        bigquery.SchemaField("id", "INT64"), # id = libelle
-        bigquery.SchemaField("nom", "STRING"),
-        bigquery.SchemaField("adresse", "STRING"),
-        bigquery.SchemaField("commune", "STRING"),
-        bigquery.SchemaField("type", "STRING"),
-        bigquery.SchemaField("latitude", "FLOAT64"),
-        bigquery.SchemaField("longitude", "FLOAT64"),
-    ]
-    table = bigquery.Table(table_id, schema=schema)
-    table = client.create_table(table)  # Make an API request.
-    print(
-        "Created table {}.{}.{}".format(table.project, table.dataset_id, table.table_id)
-    )
+# get the args from the command line
+try:
+    project_id = sys.argv[1]
+    dataset_id = sys.argv[2]
+except Exception as e:
+    print(e)
+    print("Usage: python3 create_tables.py <project_id> <dataset_id>")
+    sys.exit(1)
 
-    # Create a 'records' table
-    table_id = "vlille-gcp.vlille_gcp_dataset.records"
-    schema = [
-        bigquery.SchemaField("station_id", "INT64"),
-        bigquery.SchemaField("etat", "STRING"),
-        bigquery.SchemaField("nb_velos_dispo", "INT64"),
-        bigquery.SchemaField("nb_places_dispo", "INT64"),
-        bigquery.SchemaField("etat_connexion", "STRING"),
-        bigquery.SchemaField("derniere_maj", "TIMESTAMP"),
-        bigquery.SchemaField("record_timestamp", "TIMESTAMP"),
-    ]
-    table = bigquery.Table(table_id, schema=schema)
-    table = client.create_table(table)  # Make an API request.
-    print(
-        "Created table {}.{}.{}".format(table.project, table.dataset_id, table.table_id)
-    )
+# Create a 'stations' table
+table_id = project_id + '.' + dataset_id + '.stations'
 
-    # Populate the stations table once with a query:
-    import requests
+stations_schema = [
+    bigquery.SchemaField("id",          "INT64"), # id = libelle
+    bigquery.SchemaField("name",        "STRING"),
+    bigquery.SchemaField("adress",      "STRING"),
+    bigquery.SchemaField("city",        "STRING"),
+    bigquery.SchemaField("type",        "STRING"),
+    bigquery.SchemaField("latitude",    "FLOAT64"),
+    bigquery.SchemaField("longitude",   "FLOAT64"),
+]
+table = bigquery.Table(table_id, schema=stations_schema)
+table = client.create_table(table)  # Make an API request.
+print(
+    "Created table {}.{}.{}".format(table.project, table.dataset_id, table.table_id)
+)
 
-    url = "https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&rows=300&facet=libelle&facet=nom&facet=commune&facet=etat&facet=type&facet=etatconnexion"
-    response = requests.get(url)
-    data = response.json()
+# Create a 'records' table
+table_id = project_id + '.' + dataset_id + '.records'
+record_schema = [
+    bigquery.SchemaField("station_id",              "INT64"),
+    bigquery.SchemaField("operational_state",       "STRING"),
+    bigquery.SchemaField("nb_available_bikes",      "INT64"),
+    bigquery.SchemaField("nb_available_places",     "INT64"),
+    bigquery.SchemaField("connexion",               "STRING"),
+    bigquery.SchemaField("last_update",             "TIMESTAMP"),
+    bigquery.SchemaField("record_timestamp",        "TIMESTAMP"),
+]
+table = bigquery.Table(table_id, schema=record_schema)
+table = client.create_table(table)  # Make an API request.
+print(
+    "Created table {}.{}.{}".format(table.project, table.dataset_id, table.table_id)
+)
 
-    rows_to_insert = []
-    for record in data["records"]:
-        rows_to_insert.append(
-            (
-                record["fields"]["libelle"], # id = libelle
-                record["fields"]["nom"],
-                record["fields"]["adresse"],
-                record["fields"]["commune"],
-                record["fields"]["type"],
-                record["fields"]["localisation"][0],
-                record["fields"]["localisation"][1],
-            )
+# Populate the stations table once with a query:
+url = "https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&rows=300&facet=libelle&facet=nom&facet=commune&facet=etat&facet=type&facet=etatconnexion"
+response = requests.get(url)
+data = response.json()
+
+rows_to_insert = []
+for record in data["records"]:
+    rows_to_insert.append(
+        (
+            record["fields"]["libelle"], # id = libelle
+            record["fields"]["nom"],
+            record["fields"]["adresse"],
+            record["fields"]["commune"],
+            record["fields"]["type"],
+            record["fields"]["localisation"][0],
+            record["fields"]["localisation"][1],
         )
-    
-    table_id = "vlille-gcp.vlille_gcp_dataset.stations"
-    try:
-        table = client.get_table(table_id)
-        client.insert_rows(table, rows_to_insert)
-        print("Inserted rows.")
-    except Exception as e:
-        print(e)
-    
-    ```
+    )
+
+table_id = project_id + '.' + dataset_id + '.stations'
+try:
+    table = client.get_table(table_id)
+    client.insert_rows(table, rows_to_insert)
+    print("Station's rows inserted into table {}".format(table_id))
+except Exception as e:
+    print(e)
+```
 
 ### 2.1. Cloud Function : content and script transfert to GCS bucket
 
@@ -243,6 +252,8 @@ import os
 # Define variables for Cloud Functions
 bucket_name = 'vlille_gcp_data'
 project_name = 'vlille-gcp'
+dataset_id = 'vlille_gcp_dataset'
+table_id = 'records'
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille-gcp.json"
 
 url = 'https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&q=&rows=300&timezone=Europe%2FParis'
@@ -262,8 +273,13 @@ def store_data_json_to_gcs_bucket(data, bucket_name, str_time_paris):
 
     # Replace with the desired object name
     object_name = "data___" + str_time_paris + ".json"
-    #  replace object_name characters ":" and "-" with "_", anticipating Spark process
+    
+    
+    # ========== Anticipating Spark process : ================== #
+    # replace object_name characters ":" and "-" with "_", 
     object_name = object_name.replace(":", "_").replace("-", "_")
+    # ========================================================== #
+
     blob = bucket.blob(object_name)
 
     # Convert data to JSON string and upload to GCS
@@ -273,21 +289,19 @@ def store_data_json_to_gcs_bucket(data, bucket_name, str_time_paris):
 
 def insert_data_json_to_bigquery(data):
     client = bigquery.Client(project=project_name)
-    dataset_id = 'vlille_gcp_dataset'
-    table_id = 'records'
     table_ref = client.dataset(dataset_id).table(table_id)
     table = client.get_table(table_ref)  # API call
 
     data_to_insert = []
     for record in data['records']:
         row = {}
-        row["station_id"] = record["fields"]["libelle"]
-        row["etat"] = record["fields"]["etat"]
-        row["nb_velos_dispo"] = record["fields"]["nbvelosdispo"]
-        row["nb_places_dispo"] = record["fields"]["nbplacesdispo"]
-        row["etat_connexion"] = record["fields"]["etatconnexion"]
-        row["derniere_maj"] = record["fields"]["datemiseajour"]
-        row["record_timestamp"] = record["record_timestamp"]
+        row["station_id"]           = record["fields"]["libelle"]
+        row["operational_state"]    = record["fields"]["etat"]
+        row["nb_available_bikes"]   = record["fields"]["nbvelosdispo"]
+        row["nb_available_places"]  = record["fields"]["nbplacesdispo"]
+        row["connexion"]            = record["fields"]["etatconnexion"]
+        row["last_update"]          = record["fields"]["datemiseajour"]
+        row["record_timestamp"]     = record["record_timestamp"]
         data_to_insert.append(row)
     client.insert_rows(table, data_to_insert)
 
@@ -320,7 +334,7 @@ if __name__ == "__main__":
     vlille_pubsub('data', 'context')
 ```
 
-Zipping the Folder and Transferring to a GCS Bucket:
+Zipping the function's folder and transferring to a GCS bucket:
 
 ```sh
 Compress-Archive -Path function/main.py, function/requirements.txt, function/key-vlille-gcp.json -DestinationPath cloud-function-vlille-gcp.zip
@@ -381,6 +395,8 @@ Using :
 dashboard_app/ 
 ├── static/ 
 │   ├── css/ 
+│   │   ├── style.css       -- my css styles
+│   │   └── portal.css      -- template's css styles
 │   ├── js/
 │   │   ├── addMarker.js    -- google maps
 │   │   ├── initMap.js      -- google maps
@@ -391,293 +407,293 @@ dashboard_app/
 │   ├── plugins/ 
 │   └── scss/ 
 ├── templates/ 
-│   └── index.html          
+│   └── index.html          -- template to render by Flask
 ├── app.py                  -- Flask API
 ├── Dockerfile 
 ├── GOOGLE_MAPS_API_KEY.txt 
 ├── key-vlille-gcp.json 
-└── requirements.txt
+└── requirements.txt        -- Flask dependencies for Docker build
 ```
 
 app.py :
 
 * On the entry point, we request the data from the bike sharing service API and render the dashboard's template index.html
 
-    ```python
-    from datetime import datetime, timedelta
-    from flask import Flask, render_template, request, jsonify
-    from google.cloud import bigquery
-    import pandas as pd
-    import os
-    import requests
+```python
+from datetime import datetime, timedelta
+from flask import Flask, render_template, request, jsonify
+from google.cloud import bigquery
+import pandas as pd
+import os
+import requests
 
-    project_id = "vlille-gcp"
-    dataset_name = "vlille_gcp_dataset"
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-" + project_id + ".json"
-    GOOGLE_MAPS_API_KEY = "your_google_maps_api_key"
+project_id = "vlille-gcp"
+dataset_name = "vlille_gcp_dataset"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-" + project_id + ".json"
+GOOGLE_MAPS_API_KEY = "your_google_maps_api_key"
 
-    client = bigquery.Client()
+client = bigquery.Client()
 
-    app = Flask(__name__)
+app = Flask(__name__)
 
-    @app.route('/')
-    def index():
-        # Real-time stations infos are requested from the bike sharing service API, and stored in the variable stations_infos via the get_realtime_data call. 
-        # Data is used by the google maps API for displaying markers and stations informations on the map
-        stations_infos = get_realtime_data()
-        
-        # General stats for html displaying
-        general_infos = {
-            "nb_available_bikes":                           sum([station["nb_available_bikes"] for station in stations_infos]),
-            "nb_available_places":                          sum([station["nb_available_places"] for station in stations_infos]),
-            "nb_empty_stations":                            sum([(station["nb_available_bikes"] == 0) and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
-            "nb_full_stations":                             sum([(station["nb_available_places"] == 0) and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
-            "nb_stations_w_n_bikes_greater_than_zero":      sum([station["nb_available_bikes"] > 0 and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
-            "nb_stations_w_n_places_greater_than_zero":     sum([(station["nb_available_places"] > 0) and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
-            "nb_stations_in_serice":                        sum([station["operational_state"] == "EN SERVICE" for station in stations_infos]),
-            "nb_stations_in_maintenance":                   sum([station["operational_state"] == "IN_MAINTENANCE" for station in stations_infos]),
-            "nb_stations_reformed":                         sum([station["operational_state"] == "RÉFORMÉ" for station in stations_infos]),
-            "todays_loan_count":                            todays_loan_count(),
-        }
-        
-        return render_template('index.html', 
-                                stations_infos  =   stations_infos,
-                                general_infos   =   general_infos,
-                                GOOGLE_MAPS_API_KEY = GOOGLE_MAPS_API_KEY
-                            )
-    ```
+@app.route('/')
+def index():
+    # Real-time stations infos are requested from the bike sharing service API, and stored in the variable stations_infos via the get_realtime_data call. 
+    # Data is used by the google maps API for displaying markers and stations informations on the map
+    stations_infos = get_realtime_data()
+    
+    # General stats for html displaying
+    general_infos = {
+        "nb_available_bikes":                           sum([station["nb_available_bikes"] for station in stations_infos]),
+        "nb_available_places":                          sum([station["nb_available_places"] for station in stations_infos]),
+        "nb_empty_stations":                            sum([(station["nb_available_bikes"] == 0) and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
+        "nb_full_stations":                             sum([(station["nb_available_places"] == 0) and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
+        "nb_stations_w_n_bikes_greater_than_zero":      sum([station["nb_available_bikes"] > 0 and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
+        "nb_stations_w_n_places_greater_than_zero":     sum([(station["nb_available_places"] > 0) and (station['operational_state'] == "EN SERVICE") for station in stations_infos]),
+        "nb_stations_in_serice":                        sum([station["operational_state"] == "EN SERVICE" for station in stations_infos]),
+        "nb_stations_in_maintenance":                   sum([station["operational_state"] == "IN_MAINTENANCE" for station in stations_infos]),
+        "nb_stations_reformed":                         sum([station["operational_state"] == "RÉFORMÉ" for station in stations_infos]),
+        "todays_loan_count":                            todays_loan_count(),
+    }
+    
+    return render_template('index.html', 
+                            stations_infos  =   stations_infos,
+                            general_infos   =   general_infos,
+                            GOOGLE_MAPS_API_KEY = GOOGLE_MAPS_API_KEY
+                        )
+```
 
 * get_realtime_data() : request the data from the bike sharing service API
 
-    ```python
-    def get_realtime_data(station_id=None):
-        response = requests.get("https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&rows=300")
-        records = response.json()["records"]
+```python
+def get_realtime_data(station_id=None):
+    response = requests.get("https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&rows=300")
+    records = response.json()["records"]
 
-        data = []
-        for record in records:
-            # Check if station_id is specified and matches the current station's libelle
-            if station_id and record["fields"]["libelle"].lower() != station_id.lower():
-                continue
-            
-            station = {}
-            station["name"]                 = record["fields"]["nom"]
-            station["id"]                   = record["fields"]["libelle"]
-            station["adress"]               = record["fields"]["adresse"]
-            station["city"]                 = record["fields"]["commune"]
-            station["type"]                 = record["fields"]["type"]
-            station["latitude"]             = record["fields"]["localisation"][0]
-            station["longitude"]            = record["fields"]["localisation"][1]
-            station["operational_state"]    = record["fields"]["etat"]
-            station["nb_available_bikes"]   = record["fields"]["nbvelosdispo"]
-            station["nb_available_places"]  = record["fields"]["nbplacesdispo"]
-            station["connexion"]            = record["fields"]["etatconnexion"]
-            station["last_update"]          = record["fields"]["datemiseajour"]
-            station["record_timestamp"]     = record["record_timestamp"]
-            
-            data.append(station)
+    data = []
+    for record in records:
+        # Check if station_id is specified and matches the current station's libelle
+        if station_id and record["fields"]["libelle"].lower() != station_id.lower():
+            continue
         
-        return data
-    ```
+        station = {}
+        station["name"]                 = record["fields"]["nom"]
+        station["id"]                   = record["fields"]["libelle"]
+        station["adress"]               = record["fields"]["adresse"]
+        station["city"]                 = record["fields"]["commune"]
+        station["type"]                 = record["fields"]["type"]
+        station["latitude"]             = record["fields"]["localisation"][0]
+        station["longitude"]            = record["fields"]["localisation"][1]
+        station["operational_state"]    = record["fields"]["etat"]
+        station["nb_available_bikes"]   = record["fields"]["nbvelosdispo"]
+        station["nb_available_places"]  = record["fields"]["nbplacesdispo"]
+        station["connexion"]            = record["fields"]["etatconnexion"]
+        station["last_update"]          = record["fields"]["datemiseajour"]
+        station["record_timestamp"]     = record["record_timestamp"]
+        
+        data.append(station)
+    
+    return data
+```
 
 * The others endpoints request the Bigquery tables for the charts, here for example the transactions count by hour of day :
 
-    ```python
-    @app.route('/get_transactions_count', methods=['GET'])
-    def transactions_count():
-        today = datetime.utcnow()
+```python
+@app.route('/get_transactions_count', methods=['GET'])
+def transactions_count():
+    today = datetime.utcnow()
 
-        # The requets build CTEs to compare the bikes count of each stations, function of the record_timestamp, with the previous one
-        # Then the transactions are calculated by substracting the current bikes count with the previous one
-        # Finally, the transactions are grouped by hour of day and the sum of positive and negative transactions are calculated
+    # The requets build CTEs to compare the bikes count of each stations, function of the record_timestamp, with the previous one
+    # Then the transactions are calculated by substracting the current bikes count with the previous one
+    # Finally, the transactions are grouped by hour of day and the sum of positive and negative transactions are calculated
 
-        query = f"""
-                WITH ComparisonTable AS (
-                    SELECT
-                        station_id,
-                        TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS date, -- Convert to Paris timezone
-                        nb_velos_dispo AS current_bikes_count,
-                        LAG(nb_velos_dispo, 1) OVER (PARTITION BY station_id ORDER BY record_timestamp) AS previous_bike_count
-                    FROM
-                        `{project_id}.{dataset_name}.records`
-                    WHERE EXTRACT(DATE FROM TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR)) = DATE('{today}', 'Europe/Paris') -- Paris date
-                    ), TransactionsTable AS (
-                    SELECT
-                        station_id,
-                        date,
-                        IFNULL(previous_bike_count, 0) - current_bikes_count AS transaction_value
-                    FROM
-                        ComparisonTable
-                    WHERE
-                        previous_bike_count IS NOT NULL
-                        AND (IFNULL(previous_bike_count, 0) - current_bikes_count) <> 0
-                    ), RankedTransaCtions AS (
-                    SELECT
-                        station_id, 
-                        EXTRACT(HOUR FROM date) AS hour_of_day, 
-                        transaction_value
-                    FROM
-                        TransactionsTable
-                    )
+    query = f"""
+            WITH ComparisonTable AS (
+                SELECT
+                    station_id,
+                    TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS date, -- Convert to Paris timezone
+                    nb_velos_dispo AS current_bikes_count,
+                    LAG(nb_velos_dispo, 1) OVER (PARTITION BY station_id ORDER BY record_timestamp) AS previous_bike_count
+                FROM
+                    `{project_id}.{dataset_name}.records`
+                WHERE EXTRACT(DATE FROM TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR)) = DATE('{today}', 'Europe/Paris') -- Paris date
+                ), TransactionsTable AS (
+                SELECT
+                    station_id,
+                    date,
+                    IFNULL(previous_bike_count, 0) - current_bikes_count AS transaction_value
+                FROM
+                    ComparisonTable
+                WHERE
+                    previous_bike_count IS NOT NULL
+                    AND (IFNULL(previous_bike_count, 0) - current_bikes_count) <> 0
+                ), RankedTransaCtions AS (
+                SELECT
+                    station_id, 
+                    EXTRACT(HOUR FROM date) AS hour_of_day, 
+                    transaction_value
+                FROM
+                    TransactionsTable
+                )
 
-                    SELECT
-                        hour_of_day,
-                        SUM(IF(transaction_value > 0, transaction_value, 0)) AS sum_positive_transactions,
-                        SUM(IF(transaction_value < 0, -transaction_value, 0)) AS sum_negative_transactions
-                    FROM
-                        RankedTransactions
-                    GROUP BY
-                        hour_of_day
-                    ORDER BY
-                        hour_of_day;
-                """
-        
-        # Run the BigQuery query
-        query_job = client.query(query)
-        results = query_job.result()
+                SELECT
+                    hour_of_day,
+                    SUM(IF(transaction_value > 0, transaction_value, 0)) AS sum_positive_transactions,
+                    SUM(IF(transaction_value < 0, -transaction_value, 0)) AS sum_negative_transactions
+                FROM
+                    RankedTransactions
+                GROUP BY
+                    hour_of_day
+                ORDER BY
+                    hour_of_day;
+            """
+    
+    # Run the BigQuery query
+    query_job = client.query(query)
+    results = query_job.result()
 
-        # Process and return the results as needed
-        data = [(row.hour_of_day, row.sum_positive_transactions, row.sum_negative_transactions) for row in results]
-        while len(data) < 24:
-            data.append((len(data), 0, 0, 0))
-        
-        response_data = {
-            # records_timestamp_ptz
-            'labels': [row[0] for row in data],
+    # Process and return the results as needed
+    data = [(row.hour_of_day, row.sum_positive_transactions, row.sum_negative_transactions) for row in results]
+    while len(data) < 24:
+        data.append((len(data), 0, 0, 0))
+    
+    response_data = {
+        # records_timestamp_ptz
+        'labels': [row[0] for row in data],
 
-            # count of positive transactions : bikes returned
-            'values': [row[1] for row in data],
+        # count of positive transactions : returned bikes
+        'values': [row[1] for row in data],
 
-            # count of negative transactions : bikes loaned
-            'values2': [row[2] for row in data]
-        }
-        return (response_data)
-    ```
+        # count of negative transactions : loaned bikes
+        'values2': [row[2] for row in data]
+    }
+    return (response_data)
+```
 
 * There is a need of filling missing values for displaying timeseries charts without holes. Using pandas :
 
-    ```python
-        @app.route('/get_timeline_sum/<span>', methods=['GET'])
-        def total_bikes_count(span):
-            
-            #       ... 
-            # [BigQuery query] 
-            #       ...
-            
-            df = pd.DataFrame(data, columns=['record_timestamp', 'total_bikes'])
-            
-            # steps to fill the 'holes' in the timeline:
-            # cleaning timestamp column (remove seconds)
-            df['record_timestamp'] = pd.to_datetime(df['record_timestamp']).dt.strftime('%Y-%m-%d %H:%M')
-            # set timestamp as index
-            df.index = pd.to_datetime(df['record_timestamp'])
-            # remove duplicates
-            df = df.groupby(df.index).first()
-            # resample to 1min and fill missing values
-            df = df.resample('1min').ffill()
+```python
+    @app.route('/get_timeline_sum/<span>', methods=['GET'])
+    def total_bikes_count(span):
+        
+        #       ... 
+        #  [data query] 
+        #       ...
+        
+        df = pd.DataFrame(data, columns=['record_timestamp', 'total_bikes'])
+        
+        # steps to fill the 'holes' in the timeline:
+        # cleaning timestamp column (remove seconds)
+        df['record_timestamp'] = pd.to_datetime(df['record_timestamp']).dt.strftime('%Y-%m-%d %H:%M')
+        # set timestamp as index
+        df.index = pd.to_datetime(df['record_timestamp'])
+        # remove duplicates
+        df = df.groupby(df.index).first()
+        # resample to 1min and fill missing values
+        df = df.resample('1min').ffill()
 
-            # fill missing values at the end of the day when needed (case span == 'today')
-            count = 1440 - len(df)
-            while count > 0:
-                # add a row with timestamp+1minute, total_bikes=None
-                new_row = {
-                    'record_timestamp_ptz': df.iloc[-1]['record_timestamp_ptz'] + timedelta(minutes=1),
-                    'total_bikes': None
-                }
-                # Concatenate the original DataFrame with the new row
-                df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-                count -= 1
-
-            # return two list: labels and values, respectively df['record_timestamp_ptz'] and df['total_bikes']
-            response_data = {
-                'labels': [row for row in df['record_timestamp_ptz']],
-                'values': [row for row in df['total_bikes']]
+        # fill missing values at the end of the day when needed (case span == 'today')
+        count = 1440 - len(df)
+        while count > 0:
+            # add a row with timestamp+1minute, total_bikes=None
+            new_row = {
+                'record_timestamp_ptz': df.iloc[-1]['record_timestamp_ptz'] + timedelta(minutes=1),
+                'total_bikes': None
             }
-            return response_data
-    ```
+            # Concatenate the original DataFrame with the new row
+            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+            count -= 1
+
+        # return two list: labels and values, respectively df['record_timestamp_ptz'] and df['total_bikes']
+        response_data = {
+            'labels': [row for row in df['record_timestamp_ptz']],
+            'values': [row for row in df['total_bikes']]
+        }
+        return response_data
+```
 
 * Example of chart.js configuration : Total bikes available timeline chart, ticks and grid configuration are updated according to the selected span (today, 24h, 7d)
 
-    ```javascript
-    function displayTotalBikesTimeline(labels, values, span) {
-        var ctx = document.getElementById('canvas-total-bikes-timeline').getContext('2d');
-        sumNbVelosDispoChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Total bikes available',
-                        fill: false,
-                        data: values,
-                        stepped: true,
-                        backgroundColor: window.chartColors.blue2,
-                        borderColor: window.chartColors.blue2,
-                        pointStyle: false,
-                        borderWidth: 1.5
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                // maintainAspectRatio: false,
-                // aspectRatio: 3,
-                scales: {
-                    x: {
-                        // Update the chart ticks according to the selected span
-                        ticks: {
-                            callback: function(value, index, values) {
-                                const currentLabel = this.getLabelForValue(value);
-                                const dateObj = new Date(currentLabel);
-                                // labels shifted by 2 hours
-                                dateObj.setHours(dateObj.getHours() - 2 );
+```javascript
+function displayTotalBikesTimeline(labels, values, span) {
+    var ctx = document.getElementById('canvas-total-bikes-timeline').getContext('2d');
+    sumNbVelosDispoChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Total bikes available',
+                    fill: false,
+                    data: values,
+                    stepped: true,
+                    backgroundColor: window.chartColors.blue2,
+                    borderColor: window.chartColors.blue2,
+                    pointStyle: false,
+                    borderWidth: 1.5
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            // maintainAspectRatio: false,
+            // aspectRatio: 3,
+            scales: {
+                x: {
+                    // Update the chart ticks according to the selected span
+                    ticks: {
+                        callback: function(value, index, values) {
+                            const currentLabel = this.getLabelForValue(value);
+                            const dateObj = new Date(currentLabel);
+                            // labels shifted by 2 hours
+                            dateObj.setHours(dateObj.getHours() - 2 );
 
-                                const month = (dateObj.getMonth() + 1 < 10) ? `0${dateObj.getMonth() + 1}` : `${dateObj.getMonth() + 1}`;
-                                const day = (dateObj.getDate() < 10) ? `0${dateObj.getDate()}` : `${dateObj.getDate()}`;
-                                const hour = (dateObj.getHours() < 10) ? `0${dateObj.getHours()}` : `${dateObj.getHours()}`;
-                                const minute = (dateObj.getMinutes() < 10) ? `0${dateObj.getMinutes()}` : `${dateObj.getMinutes()}`;
+                            const month = (dateObj.getMonth() + 1 < 10) ? `0${dateObj.getMonth() + 1}` : `${dateObj.getMonth() + 1}`;
+                            const day = (dateObj.getDate() < 10) ? `0${dateObj.getDate()}` : `${dateObj.getDate()}`;
+                            const hour = (dateObj.getHours() < 10) ? `0${dateObj.getHours()}` : `${dateObj.getHours()}`;
+                            const minute = (dateObj.getMinutes() < 10) ? `0${dateObj.getMinutes()}` : `${dateObj.getMinutes()}`;
 
-                                // only displaying the ticks/grid for the first hour of each 3 hours for day-span
-                                if (span === 'today' || span === '24h') {
-                                    if (minute === '00') {
-                                        if (hour == '00' || hour == '03' || hour == '06' || hour == '09' || hour == '12' || hour == '15' || hour == '18' || hour == '21') {
-                                            return `${hour}h`;
-                                        }
+                            // only displaying the ticks/grid for the first hour of each 3 hours for day-span
+                            if (span === 'today' || span === '24h') {
+                                if (minute === '00') {
+                                    if (hour == '00' || hour == '03' || hour == '06' || hour == '09' || hour == '12' || hour == '15' || hour == '18' || hour == '21') {
+                                        return `${hour}h`;
                                     }
-                                } else if (span === '7d') {
-                                // only displaying the ticks/grid for the first hour of each day for week-span
-                                    if (minute === '00') {
-                                        if (hour == '00') {
-                                            return `${day}/${month}`;
-                                        }
+                                }
+                            } else if (span === '7d') {
+                            // only displaying the ticks/grid for the first hour of each day for week-span
+                                if (minute === '00') {
+                                    if (hour == '00') {
+                                        return `${day}/${month}`;
                                     }
                                 }
                             }
-                        },
+                        }
                     },
-                    y: {
-                        ticks: {
-                            display: true
-                        },
-                        grid: {
-                            display: true,
-                            drawBorder: true
-                        },
-                        beginAtZero: false
-                    }
                 },
-                plugins: {
-                    legend: {
-                        display: false
+                y: {
+                    ticks: {
+                        display: true
                     },
-                    tooltip: {
-                        enabled: true
-                    }
+                    grid: {
+                        display: true,
+                        drawBorder: true
+                    },
+                    beginAtZero: false
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    enabled: true
                 }
             }
-        });
-    }
-    ```
+        }
+    });
+}
+```
 
 ### 3.2. Docker's container build & push to GCP Artifact Registry
 
