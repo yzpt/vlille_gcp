@@ -16,7 +16,7 @@ $REGION
 $BILLING_ACCOUNT_ID = "011FA7-6A223F-37D9F8"
 $BILLING_ACCOUNT_ID
 # You can retrieve your billing account ID by running the following command:
-gcloud billing accounts list
+# gcloud billing accounts list
 
 
 # ================================================================================
@@ -152,7 +152,7 @@ $newContent | Set-Content -Path $dockerFilePath
 docker build -t $artifact_registry_location-docker.pkg.dev/$PROJECT_ID/$artifact_registry_repo_name/$container_name $dashboard_app_folder
 
 # Set Artifact Registry administrator permissions for the service account
-# gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role="roles/artifactregistry.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role="roles/artifactregistry.admin"
 
 # Create a repository on Artifact Registry
 gcloud artifacts repositories create $artifact_registry_repo_name --repository-format=docker --location=$artifact_registry_location --description="Dashboard V'lille"

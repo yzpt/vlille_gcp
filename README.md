@@ -429,8 +429,10 @@ import requests
 
 project_id = "vlille-gcp"
 dataset_name = "vlille_gcp_dataset"
+
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-" + project_id + ".json"
-GOOGLE_MAPS_API_KEY = "your_google_maps_api_key"
+with open('GOOGLE_MAPS_API_KEY.txt', 'r') as f:
+    GOOGLE_MAPS_API_KEY = f.read()
 
 client = bigquery.Client()
 
