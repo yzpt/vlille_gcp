@@ -3,10 +3,6 @@ import requests
 import os
 import sys
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
-
-client = bigquery.Client()
-
 # get the args from the command line
 try:
     project_id = sys.argv[1]
@@ -15,6 +11,10 @@ except Exception as e:
     print(e)
     print("Usage: python3 create_tables.py <project_id> <dataset_id>")
     sys.exit(1)
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-" + project_id + ".json"
+
+client = bigquery.Client()
 
 # Create a 'stations' table
 table_id = project_id + '.' + dataset_id + '.stations'

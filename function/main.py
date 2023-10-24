@@ -6,16 +6,17 @@ import requests
 import json
 import pytz
 import os
+import sys
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille.json"
+project_name = 'test-automation-yzpt-124'
+bucket_name = 'test-automation-yzpt-124-data'
+dataset_id = "your_dataset_id" # without project name
+
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-" + project_name + ".json"
 url = 'https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&q=&rows=300&timezone=Europe%2FParis'
 paris_tz = pytz.timezone('Europe/Paris')
 str_time_paris = datetime.now(paris_tz).strftime('%Y-%m-%d_%H:%M:%S')
-
-# Define variables for Cloud Functions
-bucket_name = 'yzpt-test-2659-bis-data'
-project_name = 'yzpt-test-2659-bis'
-dataset_id_from_SH = 'vlille_dataset'
 
 def get_json_data(url):
     # extract data from API
@@ -40,7 +41,7 @@ def store_data_json_to_gcs_bucket(data, bucket_name, str_time_paris):
 
 def insert_data_json_to_bigquery(data):
     client = bigquery.Client(project=project_name)
-    dataset_id = dataset_id_from_SH
+    dataset_id = dataset_id
     table_id = 'records'
     table_ref = client.dataset(dataset_id).table(table_id)
     table = client.get_table(table_ref)  # API call
@@ -48,13 +49,13 @@ def insert_data_json_to_bigquery(data):
     data_to_insert = []
     for record in data['records']:
         row = {}
-        row["station_id"] = record["fields"]["libelle"]
-        row["etat"] = record["fields"]["etat"]
-        row["nb_velos_dispo"] = record["fields"]["nbvelosdispo"]
-        row["nb_places_dispo"] = record["fields"]["nbplacesdispo"]
-        row["etat_connexion"] = record["fields"]["etatconnexion"]
-        row["derniere_maj"] = record["fields"]["datemiseajour"]
-        row["record_timestamp"] = record["record_timestamp"]
+        row["station_id"]           = record["fields"]["libelle"]
+        row["operational_state"]    = record["fields"]["etat"]
+        row["nb_available_bikes"]   = record["fields"]["nbvelosdispo"]
+        row["nb_available_places"]  = record["fields"]["nbplacesdispo"]
+        row["connexion"]            = record["fields"]["etatconnexion"]
+        row["last_update"]          = record["fields"]["datemiseajour"]
+        row["record_timestamp"]     = record["record_timestamp"]
         data_to_insert.append(row)
     client.insert_rows(table, data_to_insert)
 

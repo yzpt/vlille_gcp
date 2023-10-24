@@ -9,9 +9,9 @@ The goal of this project is to interconnect commonly used GCP services in data p
 </p>
 
 <p align="center">
-    <a href="https://dashboard-service-kogwvm6oba-od.a.run.app/">
+    <a href="https://dashboard-service-bohzwljmja-od.a.run.app/">
             <img src="flask_dashboard.png" alt="drawing" width="800"/>
-            https://dashboard-service-kogwvm6oba-od.a.run.app/
+            https://dashboard-service-bohzwljmja-od.a.run.app
     </a>
 </p>
 
@@ -714,45 +714,70 @@ RUN pip3 install -r requirements.txt
 EXPOSE 8080
 
 # Run your script when the container launches
-CMD ["python3", "app.py"]
+CMD ["python3", "app.py", "project_id", "dataset_name"]
+# args can be automaticaly modified by powershell CLI, see below
 ```
 
-* build :
+* Build image :
 
 ```sh
-docker build -t europe-west9-docker.pkg.dev/vlille-gcp/dashboard-repo/dashboard-container dashboard/app/
+# Set variables
+$dashboard_app_folder           = "dashboard_app"
+$artifact_registry_repo_name    = "dashboard-vlille"
+$artifact_registry_location     = "europe-west9"
+$container_name                 = "dashboard-container"
+$dashboard_service_name         = "dashboard-service"
+
+# modify the Dockerfile
+$dockerFilePath = $dashboard_app_folder + "\Dockerfile"
+
+# Read the content of the Dockerfile
+$content = Get-Content -Path $dockerFilePath
+
+# Replace the specified line with the new PROJECT_ID and dataset_name
+$newLine = 'CMD ["python3", "app.py", "' + $PROJECT_ID + '", "' + $DATASET_ID + '"]'
+$newContent = $content -replace 'CMD .*', $newLine
+
+# Write the modified content back to the Dockerfile
+$newContent | Set-Content -Path $dockerFilePath
+
+# Build Docker image
+docker build -t $artifact_registry_location-docker.pkg.dev/$PROJECT_ID/$artifact_registry_repo_name/$container_name $dashboard_app_folder
 ```
 
 * Push to GCP Artifact Registry :
 
 ```sh
 # Set Artifact Registry administrator permissions for the service account
-gcloud projects add-iam-policy-binding vlille-gcp --member="serviceAccount:admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com" --role="roles/artifactregistry.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role="roles/artifactregistry.admin"
 
 # Create a repository on Artifact Registry
-gcloud artifacts repositories create dashboard-repo --repository-format=docker --location=europe-west9
+gcloud artifacts repositories create $artifact_registry_repo_name --repository-format=docker --location=$artifact_registry_location --description="Dashboard V'lille"
 
 # Docker/GCP Authentication
-gcloud auth configure-docker europe-west9-docker.pkg.dev
+gcloud auth configure-docker $artifact_registry_location-docker.pkg.dev --quiet
 
 # Push Docker to GCP Artifact Registry
-docker push europe-west9-docker.pkg.dev/vlille-gcp/dashboard-repo/dashboard-container
+docker push $artifact_registry_location-docker.pkg.dev/$PROJECT_ID/$artifact_registry_repo_name/$container_name
 ```
 
 ### 3.3. Cloud Run deployment
 
 ```sh
+# Enable Cloud Run API
+gcloud services enable run.googleapis.com
+
 # Granting permissions (run admin) to the service account
-gcloud projects add-iam-policy-binding vlille-gcp --member="serviceAccount:admin-vlille-gcp@vlille-gcp.iam.gserviceaccount.com" --role="roles/run.admin"
+gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$SERVICE_ACCOUNT_EMAIL" --role="roles/run.admin"
 
 # Creating a Cloud Run service
-gcloud run deploy dashboard-service --image europe-west9-docker.pkg.dev/vlille-gcp/dashboard-repo/dashboard-container --region europe-west9 --platform managed --allow-unauthenticated
+gcloud run deploy $dashboard_service_name --image=$artifact_registry_location-docker.pkg.dev/$PROJECT_ID/$artifact_registry_repo_name/$container_name --region=$REGION --platform=managed --allow-unauthenticated
 
 # Logs:
-gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=dashboard-service"
+# gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=dashboard-service"
 
 # Deleting the Cloud Run service
-gcloud run services delete dashboard-service --region europe-west9 -q
+# gcloud run services delete dashboard-service --region europe-west9 -q
 ```
 
 ## 4. Insert raw data in BigQuery table from json files on a GCS bucket
@@ -765,35 +790,35 @@ Scheme of the raw data :
 
 ```javascript
 [
-    {"name": "nhits",    "type": "INTEGER"},
-    {"name": "parameters",    "type": "RECORD",    "mode": "NULLABLE",    "fields": [
-        {"name": "dataset",        "type": "STRING"},
-        {"name": "timezone",        "type": "STRING"},
-        {"name": "rows",        "type": "INTEGER"},
-        {"name": "format",        "type": "STRING"},
-        {"name": "start",        "type": "INTEGER"}
+    {"name": "nhits",       "type": "INTEGER"},
+    {"name": "parameters",          "type": "RECORD",    "mode": "NULLABLE",    "fields": [
+        {"name": "dataset",             "type": "STRING"},
+        {"name": "timezone",            "type": "STRING"},
+        {"name": "rows",                "type": "INTEGER"},
+        {"name": "format",              "type": "STRING"},
+        {"name": "start",               "type": "INTEGER"}
     ]},
-    {"name": "records",    "type": "RECORD",    "mode": "REPEATED",    "fields": [
-        {"name": "recordid",        "type": "STRING"},
-        {"name": "fields",        "type": "RECORD",        "mode": "NULLABLE",        "fields": [
-            {"name": "etatconnexion",            "type": "STRING"},
-            {"name": "nbplacesdispo",            "type": "INTEGER"},
-            {"name": "libelle",            "type": "STRING"},
-            {"name": "geo",            "type": "FLOAT",            "mode": "REPEATED"},
-            {"name": "etat",            "type": "STRING"},
-            {"name": "datemiseajour",            "type": "TIMESTAMP"},
+    {"name": "records",             "type": "RECORD",    "mode": "REPEATED",    "fields": [
+        {"name": "recordid",            "type": "STRING"},
+        {"name": "fields",              "type": "RECORD",        "mode": "NULLABLE",        "fields": [
+            {"name": "etatconnexion",           "type": "STRING"},
+            {"name": "nbplacesdispo",           "type": "INTEGER"},
+            {"name": "libelle",                 "type": "STRING"},
+            {"name": "geo",                     "type": "FLOAT",            "mode": "REPEATED"},
+            {"name": "etat",                    "type": "STRING"},
+            {"name": "datemiseajour",           "type": "TIMESTAMP"},
             {"name": "nbvelosdispo",            "type": "INTEGER"},
-            {"name": "adresse",            "type": "STRING"},
+            {"name": "adresse",                 "type": "STRING"},
             {"name": "localisation",            "type": "FLOAT",            "mode": "REPEATED"},
-            {"name": "type",            "type": "STRING"},
-            {"name": "nom",            "type": "STRING"},
-            {"name": "commune",            "type": "STRING"}
+            {"name": "type",                    "type": "STRING"},
+            {"name": "nom",                     "type": "STRING"},
+            {"name": "commune",                 "type": "STRING"}
         ]},
-        {"name": "record_timestamp",        "type": "TIMESTAMP"},
-        {"name": "datasetid",        "type": "STRING"},
-        {"name": "geometry",        "type": "RECORD",        "mode": "NULLABLE",        "fields": [
-            {"name": "type",            "type": "STRING"},
-            {"name": "coordinates",            "type": "FLOAT",            "mode": "REPEATED"}
+        {"name": "record_timestamp",    "type": "TIMESTAMP"},
+        {"name": "datasetid",           "type": "STRING"},
+        {"name": "geometry",            "type": "RECORD",        "mode": "NULLABLE",        "fields": [
+            {"name": "type",                    "type": "STRING"},
+            {"name": "coordinates",             "type": "FLOAT",            "mode": "REPEATED"}
         ]}
     ]}
 ]
@@ -802,20 +827,25 @@ Scheme of the raw data :
 ### 4.1. Using BigQuery
 
 ```sh
-# GCS bucket with raw files:    gs://vlille_data_json
+# GCS bucket with raw public viewer role for the  service account in use:
+$raw_json_files_bucket = 'gs://vlille_data_json'
+
+$project_id = 'vlille-gcp'
+$dataset_name = 'vlille_dataset'
 
 # Temporary raw table creation :
-bq mk --table vlille_gcp_dataset.raw_records json_list_schema_raw_data.json
+bq mk --table $dataset_name'.raw_records' json_list_schema_raw_data.json
 
 # load raw data from GCS bucket to BigQuery table
-bq load --source_format=NEWLINE_DELIMITED_JSON vlille_gcp_dataset.raw_records gs://vlille_data_json/*.json json_list_schema_raw_data.json
+bq load --source_format=NEWLINE_DELIMITED_JSON $dataset_name.raw_records $raw_json_files_bucket/*.json json_list_schema_raw_data.json
+# taking almot 150 seconds for 2 months of data (august 25th to october 24th 2023)
 ```
 
 * Queries :
 
 ```SQL
--- Query to transform the raw data in the BigQuery table vlille_gcp_dataset.raw_records to the BigQuery table vlille_gcp_dataset.records_from_raw :
-CREATE OR REPLACE TABLE `vlille-gcp.vlille_gcp_dataset.records_from_raw` AS
+-- Query to transform the raw data in the BigQuery table <dataset-name>.raw_records to the BigQuery table <dataset-name>.records_from_raw :
+CREATE OR REPLACE TABLE `<project-id>.<dataset-name>.records_from_raw` AS
 WITH transformed_data AS (
   SELECT
     CAST(records.fields.libelle AS INT64) AS station_id,
@@ -826,28 +856,27 @@ WITH transformed_data AS (
     TIMESTAMP(records.fields.datemiseajour) AS derniere_maj,
     TIMESTAMP(records.record_timestamp) AS record_timestamp
   FROM
-    `vlille-gcp.vlille_gcp_dataset.raw_records`, UNNEST(records) AS records
+    `<project-id>.<dataset-name>.raw_records`, UNNEST(records) AS records
 )
 SELECT * FROM transformed_data;
 
 -- Query to remove all datas with: 
 --     record_timestamp < 2021-08-25  (for clean data)
 --     and record_timestamp >= 2021-10-04 (because the scheduled function started on the 2023-10-03's evening)
-DELETE FROM `vlille-gcp.vlille_gcp_dataset.records_from_raw`
+DELETE FROM `<project-id>.<dataset-name>.records_from_raw`
 WHERE record_timestamp < TIMESTAMP('2023-08-25 00:00:00') OR record_timestamp >= TIMESTAMP('2023-10-04 00:00:00')
 
 
 -- copy all rows from the temporary table records_from_raw to the table records
-INSERT INTO `vlille-gcp.vlille_gcp_dataset.records` (station_id, etat, nb_velos_dispo, nb_places_dispo, etat_connexion, derniere_maj, record_timestamp)
-SELECT * FROM `vlille-gcp.vlille_gcp_dataset.records_from_raw`
+INSERT INTO `<project-id>.<dataset-name>.records` (station_id, etat, nb_velos_dispo, nb_places_dispo, etat_connexion, derniere_maj, record_timestamp)
+SELECT * FROM `<project-id>.<dataset-name>.records_from_raw`
 
--- check wrong rows :
-SELECT record_timestamp, COUNT( DISTINCT station_id ) AS nb
-  FROM `vlille-gcp.vlille_gcp_dataset.records`
-  WHERE DATE(record_timestamp) = '2023-09-10'
-  GROUP BY record_timestamp
-  ORDER BY nb ASC;
-
+-- check if there wrong rows by selecting count of stations by record_timestamp, should be always 289:
+-- SELECT record_timestamp, COUNT( DISTINCT station_id ) AS nb
+--   FROM `<project-id>.<dataset-name>.records`
+--   WHERE DATE(record_timestamp) = '2023-09-10'
+--   GROUP BY record_timestamp
+--   ORDER BY nb DESC;
 ```
 
 ### 4.2. === à refaire === Using Dataproc / PySpark
