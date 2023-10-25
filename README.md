@@ -162,7 +162,7 @@ try:
     dataset_id = sys.argv[2]
 except Exception as e:
     print(e)
-    print("Usage: python3 create_tables.py <project_id> <dataset_id>")
+    print("Usage: python create_tables.py <project_id> <dataset_id>")
     sys.exit(1)
 
 # Create a 'stations' table
@@ -946,7 +946,7 @@ if __name__ == "__main__":
 
     except Exception as e:
         print(e)
-        print("Usage: python bq_loading_raw_json_files.py <project-id> <key-file-path> <dataset-name> <raw_records_table_name> <transformed_records_from_raw_table_name> <records_table_name>")
+        print("Usage: python bq_loading_raw_json_files.py <project-id> <key-file-path> <dataset-name> <raw_records_table_name> <transformed_records_from_raw_table_name> <records_table_name> <date_inf> <date_sup>")
 ```
 
 ### 4.2.  Using Dataproc / PySpark
