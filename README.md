@@ -250,8 +250,8 @@ import pytz
 import os
 
 # Define variables for Cloud Functions
-bucket_name = 'vlille_gcp_data'
 project_name = 'vlille-gcp'
+bucket_name = 'vlille_gcp_data'
 dataset_id = 'vlille_gcp_dataset'
 table_id = 'records'
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-vlille-gcp.json"

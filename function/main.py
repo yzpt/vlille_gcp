@@ -8,12 +8,13 @@ import pytz
 import os
 import sys
 
-project_name = 'test-automation-yzpt-124'
-bucket_name = 'test-automation-yzpt-124-data'
-dataset_id = "your_dataset_id" # without project name
-
-
+# Define variables for Cloud Functions
+project_name = 'vlille-gcp'
+bucket_name = 'vlille_gcp_data'
+dataset_id = 'vlille_gcp_dataset'
+table_id = 'records'
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-" + project_name + ".json"
+
 url = 'https://opendata.lillemetropole.fr/api/records/1.0/search/?dataset=vlille-realtime&q=&rows=300&timezone=Europe%2FParis'
 paris_tz = pytz.timezone('Europe/Paris')
 str_time_paris = datetime.now(paris_tz).strftime('%Y-%m-%d_%H:%M:%S')
