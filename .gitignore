@@ -9,7 +9,7 @@ docker_storage_copy_files/
 function_2/
 job_load_file_on_gcs/
 .vscode/
-
+misc_and_old/
 
 key-vlille.json
 key-vlille-gcp.json
