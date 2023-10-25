@@ -900,7 +900,7 @@ def run_queries(project_id, dataset_name, raw_records_table_name, transformed_re
             `{project_id}.{dataset_name}.{transformed_records_from_raw_table_name}`
         WHERE 
                record_timestamp < TIMESTAMP('{date_inf}') 
-            OR record_timestamp >= TIMESTAMP('2023-10-04 00:00:00');
+            OR record_timestamp >= TIMESTAMP('{date_sup}');
         """,
         """
         INSERT INTO 
