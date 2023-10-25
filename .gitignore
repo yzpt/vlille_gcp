@@ -18,6 +18,7 @@ docker_storage_copy_files/key-vlille.json
 key-dataflow-sa-yzpt.json
 keyfile-zapart-data-vlille.json
 GOOGLE_MAPS_API_KEY.txt
+key-zapart-data-vlille.json
 
 
 ./requirements.txt

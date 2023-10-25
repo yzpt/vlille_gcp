@@ -1,4 +1,4 @@
-# V'lille GCP
+ùùùù# V'lille GCP
 
 Collecting data from the <a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom">V'lille API (Real-time station availability)</a>, storing and processing it on GCP: Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker.
 
@@ -510,33 +510,36 @@ def transactions_count():
     # Finally, the transactions are grouped by hour of day and the sum of positive and negative transactions are calculated
 
     query = f"""
-            WITH ComparisonTable AS (
-                SELECT
-                    station_id,
-                    TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS date, -- Convert to Paris timezone
-                    nb_velos_dispo AS current_bikes_count,
-                    LAG(nb_velos_dispo, 1) OVER (PARTITION BY station_id ORDER BY record_timestamp) AS previous_bike_count
-                FROM
-                    `{project_id}.{dataset_name}.records`
-                WHERE EXTRACT(DATE FROM TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR)) = DATE('{today}', 'Europe/Paris') -- Paris date
-                ), TransactionsTable AS (
-                SELECT
-                    station_id,
-                    date,
-                    IFNULL(previous_bike_count, 0) - current_bikes_count AS transaction_value
-                FROM
-                    ComparisonTable
-                WHERE
-                    previous_bike_count IS NOT NULL
-                    AND (IFNULL(previous_bike_count, 0) - current_bikes_count) <> 0
-                ), RankedTransaCtions AS (
-                SELECT
-                    station_id, 
-                    EXTRACT(HOUR FROM date) AS hour_of_day, 
-                    transaction_value
-                FROM
-                    TransactionsTable
-                )
+            WITH 
+                ComparisonTable AS (
+                    SELECT
+                        station_id,
+                        TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR) AS date, -- Convert to Paris timezone
+                        nb_velos_dispo AS current_bikes_count,
+                        LAG(nb_velos_dispo, 1) OVER (PARTITION BY station_id ORDER BY record_timestamp) AS previous_bike_count
+                    FROM
+                        `{project_id}.{dataset_name}.records`
+                    WHERE EXTRACT(DATE FROM TIMESTAMP_ADD(record_timestamp, INTERVAL 2 HOUR)) = DATE('{today}', 'Europe/Paris') -- Paris date
+                    ), 
+                TransactionsTable AS (
+                    SELECT
+                        station_id,
+                        date,
+                        IFNULL(previous_bike_count, 0) - current_bikes_count AS transaction_value
+                    FROM
+                        ComparisonTable
+                    WHERE
+                        previous_bike_count IS NOT NULL
+                        AND (IFNULL(previous_bike_count, 0) - current_bikes_count) <> 0
+                    ), 
+                RankedTransaCtions AS (
+                    SELECT
+                        station_id, 
+                        EXTRACT(HOUR FROM date) AS hour_of_day, 
+                        transaction_value
+                    FROM
+                        TransactionsTable
+                    )
 
                 SELECT
                     hour_of_day,
@@ -826,62 +829,132 @@ Scheme of the raw data :
 ]
 ```
 
-### 4.1. Using BigQuery
+### 4.1. Using BigQuery with CLI & Python client
+
+* shell script : bq_loading_raw_json_files.ps1
 
 ```sh
-# GCS bucket with raw public viewer role for the  service account in use:
+# GCS bucket with viewer role for the current service account:
 $raw_json_files_bucket = 'gs://vlille_data_json'
 
-$project_id = 'vlille-gcp'
-$dataset_name = 'vlille_dataset'
+# BigQuery variables:
+$project_id                                 = 'vlille-gcp'
+$key_file_path                              = 'key-vlille-gcp.json'
+$dataset_name                               = 'vlille_dataset'
+$raw_records_table_name                     = "raw_records"
+$transformed_records_from_raw_table_name    = "transformed_records_from_raw_records"
+$records_table_name                         = "records" # /!\ production table /!\
+$date_inf                                   = "2023-08-25 00:00:00"
+$date_sup                                   = "2023-10-04 00:00:00"
 
-# Temporary raw table creation :
-bq mk --table $dataset_name'.raw_records' json_list_schema_raw_data.json
+# Temporary tables creation :
+bq mk --table $dataset_name"."$raw_records_table_name json_list_schema_raw_data.json
+bq mk --table $dataset_name"."$transformed_records_from_raw_table_name json_list_schema_records
 
-# load raw data from GCS bucket to BigQuery table
-bq load --source_format=NEWLINE_DELIMITED_JSON $dataset_name.raw_records $raw_json_files_bucket/*.json json_list_schema_raw_data.json
+# load raw data from GCS bucket to BigQuery raw_records table
+bq load --source_format=NEWLINE_DELIMITED_JSON $dataset_name"."$raw_records_table_name gs://vlille_data_json/*.json json_list_schema_raw_data.json
 # taking almot 150 seconds for 2 months of data (august 25th to october 24th 2023)
+
+# run python job:
+# Usage: python bq_loading_raw_json_files.py <project-id> <key-file-path> <dataset-name> <raw_records_table_name> <transformed_records_from_raw_table_name> <records_table_name>
+python bq_loading_raw_json_files.py $project_id $key_file_path $dataset_name $raw_records_table_name $transformed_records_from_raw_table_name $records_table_name $date_inf $date_sup
+
+# delete the temporary tables
+bq rm -f -t $dataset_name"."$raw_records_table_name
+bq rm -f -t $dataset_name"."$transformed_records_from_raw_table_name
 ```
 
-* Queries :
+* python script : bq_loading_raw_json_files.py
 
-```SQL
--- Query to transform the raw data in the BigQuery table <dataset-name>.raw_records to the BigQuery table <dataset-name>.records_from_raw :
-CREATE OR REPLACE TABLE `<project-id>.<dataset-name>.records_from_raw` AS
-WITH transformed_data AS (
-  SELECT
-    CAST(records.fields.libelle AS INT64) AS station_id,
-    records.fields.etat AS etat,
-    records.fields.nbvelosdispo AS nb_velos_dispo,
-    records.fields.nbplacesdispo AS nb_places_dispo,
-    records.fields.etatconnexion AS etat_connexion,
-    TIMESTAMP(records.fields.datemiseajour) AS derniere_maj,
-    TIMESTAMP(records.record_timestamp) AS record_timestamp
-  FROM
-    `<project-id>.<dataset-name>.raw_records`, UNNEST(records) AS records
-)
-SELECT * FROM transformed_data;
+```python
+from google.cloud import bigquery
+import sys
+import os
 
--- Query to remove all datas with: 
---     record_timestamp < 2021-08-25  (for clean data)
---     and record_timestamp >= 2021-10-04 (because the scheduled function started on the 2023-10-03's evening)
-DELETE FROM `<project-id>.<dataset-name>.records_from_raw`
-WHERE record_timestamp < TIMESTAMP('2023-08-25 00:00:00') OR record_timestamp >= TIMESTAMP('2023-10-04 00:00:00')
+# Usage: python bq_loading_raw_json_files.py <project-id> <key-file-path> <dataset-name> <raw_records_table_name> <transformed_records_from_raw_table_name> <records_table_name> <date_inf> <date_sup>
 
+def run_queries(project_id, dataset_name, raw_records_table_name, transformed_records_from_raw_table_name, records_table_name, date_inf, date_sup):
+    # Initialize the BigQuery client
+    client = bigquery.Client(project=project_id)
 
--- copy all rows from the temporary table records_from_raw to the table records
-INSERT INTO `<project-id>.<dataset-name>.records` (station_id, etat, nb_velos_dispo, nb_places_dispo, etat_connexion, derniere_maj, record_timestamp)
-SELECT * FROM `<project-id>.<dataset-name>.records_from_raw`
+    # Define the queries
+    queries = [
+        """
+        CREATE OR REPLACE TABLE `{project_id}.{dataset_name}.{transformed_records_from_raw_table_name}` AS
+        WITH transformed_data AS (
+          SELECT
+            CAST(records.fields.libelle AS INT64) AS station_id,
+            records.fields.etat AS operational_state,
+            records.fields.nbvelosdispo AS nb_available_bikes,
+            records.fields.nbplacesdispo AS nb_available_places,
+            records.fields.etatconnexion AS connexion,
+            TIMESTAMP(records.fields.datemiseajour) AS last_update,
+            TIMESTAMP(records.record_timestamp) AS record_timestamp
+          FROM
+            `{project_id}.{dataset_name}.{raw_records_table_name}`, UNNEST(records) AS records
+        )
+        SELECT * FROM transformed_data;
+        """,
+        """
+        DELETE FROM 
+            `{project_id}.{dataset_name}.{transformed_records_from_raw_table_name}`
+        WHERE 
+               record_timestamp < TIMESTAMP('{date_inf}') 
+            OR record_timestamp >= TIMESTAMP('2023-10-04 00:00:00');
+        """,
+        """
+        INSERT INTO 
+            `{project_id}.{dataset_name}.{records_table_name}` 
+            (station_id, operational_state, nb_available_bikes, nb_available_places, connexion, last_update, record_timestamp)
+        SELECT 
+            * 
+        FROM 
+            `{project_id}.{dataset_name}.{transformed_records_from_raw_table_name}`
+        WHERE
+            station_id is not NULL;
+        """
+    ]
 
--- check if there wrong rows by selecting count of stations by record_timestamp, should be always 289:
--- SELECT record_timestamp, COUNT( DISTINCT station_id ) AS nb
---   FROM `<project-id>.<dataset-name>.records`
---   WHERE DATE(record_timestamp) = '2023-09-10'
---   GROUP BY record_timestamp
---   ORDER BY nb DESC;
+    # Run the queries
+    for query in queries:
+        formatted_query = query.format(
+                                project_id                              = project_id, 
+                                dataset_name                            = dataset_name, 
+                                raw_records_table_name                  = raw_records_table_name, 
+                                transformed_records_from_raw_table_name = transformed_records_from_raw_table_name, 
+                                records_table_name                      = records_table_name,
+                                date_inf                                = date_inf,
+                                date_sup                                = date_sup
+                                )
+        query_job = client.query(formatted_query)
+        query_job.result()  # Wait for the query to finish
+
+    print("Queries executed successfully.")
+
+if __name__ == "__main__":
+    try:
+        project_id                                      = sys.argv[1]
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"]    = sys.argv[2]
+        dataset_name                                    = sys.argv[3]
+        raw_records_table_name                          = sys.argv[4]
+        transformed_records_from_raw_table_name         = sys.argv[5]
+        records_table_name                              = sys.argv[6]
+        date_inf                                        = sys.argv[7]
+        date_sup                                        = sys.argv[8]
+        
+        run_queries(project_id, dataset_name, raw_records_table_name, transformed_records_from_raw_table_name, records_table_name, date_inf, date_sup)
+
+    except Exception as e:
+        print(e)
+        print("Usage: python bq_loading_raw_json_files.py <project-id> <key-file-path> <dataset-name> <raw_records_table_name> <transformed_records_from_raw_table_name> <records_table_name>")
 ```
 
-### 4.2. === à refaire === Using Dataproc / PySpark
+### 4.2.  Using Dataproc / PySpark
+
+#################################################
+#                   à refaire                   #
+#################################################
+
 
 Chargement des données vers BigQuery avec Dataproc et PySpark.
 

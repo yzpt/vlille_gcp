@@ -1,0 +1,32 @@
+E1025 09:24:46.929250  5476 bq_utils.py:354] BigQuery error in load operation: Not found: Project gs
+Traceback (most recent call last):
+  File "C:\Users\Yohann\AppData\Local\Google\Cloud SDK\google-cloud-sdk\platform\bq\bigquery_client.py", line 6028, in _ExecuteInChunksWithProgress
+    status, result = request.next_chunk()
+  File "C:\Users\Yohann\AppData\Local\Google\Cloud SDK\google-cloud-sdk\platform\bq\third_party\googleapiclient\_helpers.py", line 135, in positional_wrapper
+    return wrapped(*args, **kwargs)
+  File "C:\Users\Yohann\AppData\Local\Google\Cloud SDK\google-cloud-sdk\platform\bq\third_party\googleapiclient\http.py", line 1020, in next_chunk
+    raise ResumableUploadError(resp, content)
+googleapiclient.errors.ResumableUploadError: <HttpError 404 when requesting None returned "Not found: Project gs". Details: "[{'message': 'Not found: Project gs', 'domain': 'global', 'reason': 'notFound'}]">
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Yohann\AppData\Local\Google\Cloud SDK\google-cloud-sdk\platform\bq\bq.py", line 891, in RunSafely
+    return_value = self.RunWithArgs(*args, **kwds)
+  File "C:\Users\Yohann\AppData\Local\Google\Cloud SDK\google-cloud-sdk\platform\bq\bq.py", line 1347, in RunWithArgs
+    job = client.Load(table_reference, source, schema=schema, **opts)
+  File "C:\Users\Yohann\AppData\Local\Google\Cloud SDK\google-cloud-sdk\platform\bq\bigquery_client.py", line 6999, in Load
+    return self.ExecuteJob(
+  File "C:\Users\Yohann\AppData\Local\Google\Cloud SDK\google-cloud-sdk\platform\bq\bigquery_client.py", line 6302, in ExecuteJob
+    job = self.RunJobSynchronously(
+  File "C:\Users\Yohann\AppData\Local\Google\Cloud SDK\google-cloud-sdk\platform\bq\bigquery_client.py", line 6279, in RunJobSynchronously
+    result = self.StartJob(
+  File "C:\Users\Yohann\AppData\Local\Google\Cloud SDK\google-cloud-sdk\platform\bq\bigquery_client.py", line 6117, in StartJob
+    result = BigqueryClient._ExecuteInChunksWithProgress(request)
+  File "C:\Users\Yohann\AppData\Local\Google\Cloud SDK\google-cloud-sdk\platform\bq\bigquery_client.py", line 6044, in _ExecuteInChunksWithProgress
+    BigqueryHttp.RaiseErrorFromHttpError(e)
+  File "C:\Users\Yohann\AppData\Local\Google\Cloud SDK\google-cloud-sdk\platform\bq\bigquery_client.py", line 1078, in RaiseErrorFromHttpError
+    BigqueryClient.RaiseError(content)
+  File "C:\Users\Yohann\AppData\Local\Google\Cloud SDK\google-cloud-sdk\platform\bq\bigquery_client.py", line 3402, in RaiseError
+    raise BigqueryError.Create(error, result, [])
+bigquery_client.BigqueryNotFoundError: Not found: Project gs
