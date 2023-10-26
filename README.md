@@ -951,22 +951,11 @@ if __name__ == "__main__":
 
 ### 4.2.  Using Dataproc / PySpark
 
-#### 4.2.1. Renaming "Renaming a large number of files on a bucket, Python script with multi-processing on a horizontally scaling workload VM
+In order to load data from JSON files into a BigQuery table via Dataproc, we need to first modify the file names by replacing ":" characters with "_".
 
-```sh	
-# enable compute engine API
-gcloud services enable compute.googleapis.com
+There are over 400,000 files to process, and I have chosen a Python multiprocessing script running on a horizontally scaling t2a-standard-8 compute engine VM.
 
-# create a VM instance with 8 vCPUs on GUI
-$instance_zone = "us-central-1a"
-$instance_name = "renaming-vm"
-
-# upload python script on the VM
-gcloud compute scp dataproc/multiproc_gsutil_mv.py $instance_name --zone=$instance_zone
-
-# connect to the VM instance via SSH
-gcloud compute ssh $instance_name --zone $ZONE
-```
+#### 4.2.1. Renaming "Renaming a large number of files on a bucket, Python script with multi-processing on a horizontally scaling compute engine VM
 
 * multiproc_gsutil_mv.py:
 
@@ -1010,7 +999,24 @@ if __name__ == "__main__":
         pool.map(rename_file, decoded_output)
 ```
 
-SSH : 
+* gcloud CLI:
+
+```sh
+# enable compute engine API
+gcloud services enable compute.googleapis.com
+
+# create a VM instance with 8 vCPUs on GUI
+$instance_zone = "us-central-1a"
+$instance_name = "renaming-vm"
+
+# upload python script on the VM
+gcloud compute scp dataproc/multiproc_gsutil_mv.py $instance_name --zone=$instance_zone
+
+# connect to the VM instance via SSH
+gcloud compute ssh $instance_name --zone $ZONE
+```
+
+* VM's SSH :
 
 ```linux
 sudo apt-get update
@@ -1035,16 +1041,13 @@ python3 multiproc_gsutil_mv.py gs://json_data_for_dataproc
 # ========================================================
 ```
 
+
+#### 4.2.2. Chargement des données vers BigQuery avec Dataproc et PySpark.
+
+
 #################################################
 #                   à refaire                   #
 #################################################
-
-
-Chargement des données vers BigQuery avec Dataproc et PySpark.
-
-<!-- <details> -->
-  <!-- <summary>script PySpark : spark_gcs_to_bq_3.py</summary> -->
-* Script PySpark : spark_gcs_to_bq_3.py
 
 ```python
 from pyspark.sql import SparkSession
