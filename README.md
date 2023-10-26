@@ -1060,20 +1060,20 @@ gsutil mb -l $region $bucket_name_script
 gsutil mb -l $region $bucket_name_temp
 
 # Create bigquery table
-bq mk --table  vlille-gcp:vlille_gcp_dataset.dataproc_test 
+bq mk --table  zapart-data-vlille:vlille_dataset.dataproc_test 
 
 # Create a cluster
-gcloud dataproc clusters create cluster-8b5a --region us-central1 --single-node --master-machine-type n2-standard-8 --master-boot-disk-size 500 --image-version 2.1-debian11 --optional-components JUPYTER --project vlille-gcp
+gcloud dataproc clusters create cluster-8b5a --region us-central1 --single-node --master-machine-type n2-standard-8 --master-boot-disk-size 500 --image-version 2.1-debian11 --optional-components JUPYTER --project zapart-data-vlille
 
 # Upload the script to the bucket
 gsutil cp dataproc/pyspark_job_load_json_files_to_bigquery.py $bucket_name_script
 
 # Submit the job
-gcloud dataproc jobs submit pyspark $bucket_name_script/pyspark_job_load_json_files_to_bigquery.py --cluster cluster-8b5a --region us-central1 --project vlille-gcp
+gcloud dataproc jobs submit pyspark $bucket_name_script/pyspark_job_load_json_files_to_bigquery.py --cluster cluster-8b5a --region us-central1 --project zapart-data-vlille
 
 # bq query to check the data
-bq query --use_legacy_sql=false 'SELECT COUNT(*) FROM `vlille-gcp.vlille_gcp_dataset.dataproc_test`'
+bq query --use_legacy_sql=false 'SELECT COUNT(*) FROM `zapart-data-vlille.vlille_dataset.dataproc_test`'
 
 # Delete the cluster
-gcloud dataproc clusters delete cluster-8b5a --region us-central1 --project vlille-gcp
+gcloud dataproc clusters delete cluster-8b5a --region us-central1 --project zapart-data-vlille
 ```
