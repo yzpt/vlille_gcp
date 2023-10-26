@@ -1041,7 +1041,7 @@ python3 multiproc_gsutil_mv.py gs://json_data_for_dataproc
 # ========================================================
 ```
 
-#### 4.2.2. Chargement des données vers BigQuery avec Dataproc et PySpark.
+#### 4.2.2. Loading data into BigQuery using Dataproc and PySpark.
 
 ```sh
 # Enable Dataproc API
