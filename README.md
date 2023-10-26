@@ -1044,77 +1044,37 @@ python3 multiproc_gsutil_mv.py gs://json_data_for_dataproc
 
 #### 4.2.2. Chargement des données vers BigQuery avec Dataproc et PySpark.
 
-
-#################################################
-#                   à refaire                   #
-#################################################
-
-```python
-from pyspark.sql import SparkSession
-
-# Create a SparkSession
-spark = SparkSession.builder \
-    .appName("Spark SQL - vlille") \
-    .config("spark.driver.maxResultSize", "10g") \
-    .config("spark.driver.memory", "10g") \
-    .getOrCreate()
-
-# Define the GCS bucket and path
-json_dir = "gs://vlille_sample_data_yzpt/"
-
-# List the JSON files in the directory
-json_files = spark.sparkContext.binaryFiles(json_dir + "*.json")
-
-# Initialize a counter for processed files
-processed_files = 0
-
-# Iterate through each JSON file
-for json_file in json_files.collect()[:3]:
-    # Read the JSON file
-    df = spark.read.json(json_file[0])
-    
-    # Create a view
-    df.createOrReplaceTempView("vlille")
-    
-    # Query the view
-    df = spark.sql("SELECT * FROM vlille")
-    
-    # Show the results (optional)
-    df.show()
-    
-    # Write the results to a BigQuery table
-    df.write \
-        .format("bigquery") \
-        .option("table", "vlille-396911.test_dataproc.vlille-4") \
-        .option("temporaryGcsBucket", "yzpt-temp-bucket") \
-        .mode("overwrite") \
-        .save()
-    
-    # Increment the processed files counter
-    processed_files += 1
-    
-    # Print progress information
-    print(f"Processed {processed_files} files")
-
-# Stop the session
-spark.stop()
-```
-<!-- </details>  <br> -->
-
-Cluster dataproc et éxécution du script :
-
 ```sh
-# Création d'un cluster Dataproc : 1 master, 7 workers n1-standard-2
-gcloud dataproc clusters create cluster-dataproc-vlille --region us-east1 --master-machine-type n1-standard-2 --master-boot-disk-size 50 --num-workers 7 --worker-machine-type n1-standard-2 --worker-boot-disk-size 50 --image-version 2.1-debian11 --project vlille-396911
+# Enable Dataproc API
+gcloud services enable dataproc.googleapis.com
 
-# Transfert du script PySpark sur un bucket
-gsutil cp spark_gcs_to_bq_3.py gs://allo_bucket_yzpt
+# Set variables
+$job_script_path = "dataproc/pyspark_job_load_json_files_to_bigquery.py"
 
-# Lancement du job PySpark sur le cluster Dataproc
-gcloud dataproc jobs submit pyspark gs://allo_bucket_yzpt/spark_gcs_to_bq_3.py --cluster cluster-dataproc-vlille --region us-east1 --project vlille-396911 
+# Temporary bucket
+$bucket_name_script = "gs://dataproc_test_yzpt_script"
+$bucket_name_temp   = "gs://dataproc_test_yzpt_temp"
+$region = "us-east1"
 
-# Le traitement est très long (plusieurs heures) car les workers ne sont pas performants.
+# Create a bucket for script
+gsutil mb -l $region $bucket_name_script
+gsutil mb -l $region $bucket_name_temp
+
+
+# Create bigquery table
+bq mk --table --schema json_list_schema_raw_data.json zapart-data-vlille:vlille_dataset.dataproc_test 
+# delete
+bq rm -f -t zapart-data-vlille:vlille_dataset.dataproc_test
+
+# Upload the script to the bucket
+gsutil cp dataproc/pyspark_job_load_json_files_to_bigquery.py $bucket_name_script
+
+# Create a cluster
+gcloud dataproc clusters create cluster-8b5a --region us-central1 --single-node --master-machine-type n2-standard-8 --master-boot-disk-size 500 --image-version 2.1-debian11 --optional-components JUPYTER --project zapart-data-vlille
+
+# Submit the job
+gcloud dataproc jobs submit pyspark $bucket_name_script/pyspark_job_load_json_files_to_bigquery.py --cluster cluster-8b5a --region us-central1 --project zapart-data-vlille
 
 # Suppression du cluster
-gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --project vlille-396911 -q
+# gcloud dataproc clusters delete cluster-dataproc-vlille --region us-east1 --project vlille-396911 -q
 ```
