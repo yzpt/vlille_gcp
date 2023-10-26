@@ -951,6 +951,90 @@ if __name__ == "__main__":
 
 ### 4.2.  Using Dataproc / PySpark
 
+#### 4.2.1. Renaming "Renaming a large number of files on a bucket, Python script with multi-processing on a horizontally scaling workload VM
+
+```sh	
+# enable compute engine API
+gcloud services enable compute.googleapis.com
+
+# create a VM instance with 8 vCPUs on GUI
+$instance_zone = "us-central-1a"
+$instance_name = "renaming-vm"
+
+# upload python script on the VM
+gcloud compute scp dataproc/multiproc_gsutil_mv.py $instance_name --zone=$instance_zone
+
+# connect to the VM instance via SSH
+gcloud compute ssh $instance_name --zone $ZONE
+```
+
+* multiproc_gsutil_mv.py:
+
+```python
+import subprocess
+import os
+from multiprocessing import Pool
+import sys
+
+try:
+    bucket_id = sys.argv[1]
+except Exception as e:
+    print("Error: ", e)
+    print("Usage: python multiproc_gsutil_mv.py <bucket_id>")
+    print("Usage: bucket_id = 'gs://<your_bucket_name>'")
+    sys.exit(1)
+
+# Run the gsutil command and capture its output
+gsutil_list_command = "gsutil ls " + bucket_id
+result = subprocess.run(gsutil_list_command, stdout=subprocess.PIPE, shell=True)
+
+# Decode and split the output into individual file paths
+decoded_output = result.stdout.decode(encoding='utf-8').splitlines()
+
+# Function to rename a file
+def rename_file(file_path):
+    # Extract the filename from the full path
+    file_name = os.path.basename(file_path)
+    # Replace ":" and "-" characters with "_"
+    new_file_name = file_name.replace(':', '_').replace('-', '_')
+    # Rename the file by moving it to the new name
+    os.system(f"gsutil mv {file_path} {bucket_id}/{new_file_name}")
+
+# Use multiprocessing to rename files in parallel
+if __name__ == "__main__":
+    # Specify the number of parallel processes
+    num_processes = 8  # You can adjust this based on your system's capabilities
+    # Create a pool of processes
+    with Pool(processes=num_processes) as pool:
+        # Map the rename_file function to the list of file paths
+        pool.map(rename_file, decoded_output)
+```
+
+SSH : 
+
+```linux
+sudo apt-get update
+sudo apt-get upgrade
+
+# ============ Install Google Cloud SDK (gcloud) ====
+# Add the Cloud SDK distribution URI as a package source:
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+
+# Import the Google Cloud public key:
+sudo apt-get install apt-transport-https ca-certificates gnupg
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+
+# apt-get sdk
+sudo apt-get install google-cloud-sdk
+
+# Verify the installation:
+gcloud version
+
+# ============  Run the script:  =========================
+python3 multiproc_gsutil_mv.py gs://json_data_for_dataproc
+# ========================================================
+```
+
 #################################################
 #                   à refaire                   #
 #################################################
