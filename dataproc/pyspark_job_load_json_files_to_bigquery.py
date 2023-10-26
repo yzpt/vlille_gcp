@@ -43,7 +43,7 @@ json_schema = StructType([
 ])
 
 # Read JSON data from Google Cloud Storage
-json_data = spark.read.schema(json_schema).json("gs://vlille_data_json_sample/*.json")
+json_data = spark.read.schema(json_schema).json("gs://zapart-data-vlille-data/*.json")
 
 # Flatten the nested JSON structure
 flattened_data = json_data.select(col("records.fields.nbvelosdispo").alias("nb_available_bikes"),
