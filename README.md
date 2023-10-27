@@ -4,13 +4,13 @@ Collecting data from the <a href="https://opendata.lillemetropole.fr/explore/dat
 
 The goal of this project is to interconnect commonly used GCP services in data processing.
 
-<p>
+<p align="center">
     <img src="./img/diagram_svg.svg" alt="drawing" width="800"/>
 </p>
 
 <p align="center">
     <a href="https://dashboard-service-bohzwljmja-od.a.run.app/"  target="_blank">
-            <img src="flask_dashboard.png" alt="drawing" width="800"/>
+            <img src="flask_dashboard.png" alt="drawing" width="800"/><br>
             https://dashboard-service-bohzwljmja-od.a.run.app
     </a>
 </p>
