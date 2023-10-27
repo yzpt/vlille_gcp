@@ -1,6 +1,6 @@
 # V'lille GCP
 
-Collecting data from the <a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom">V'lille API (Real-time station availability)</a>, storing and processing it on GCP: Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker.
+Collecting data from the <a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom" target="_blank">V'lille API (Real-time station availability)</a>, storing and processing it on GCP: Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker.
 
 The goal of this project is to interconnect commonly used GCP services in data processing.
 
@@ -9,15 +9,15 @@ The goal of this project is to interconnect commonly used GCP services in data p
 </p>
 
 <p align="center">
-    <a href="https://dashboard-service-bohzwljmja-od.a.run.app/">
+    <a href="https://dashboard-service-bohzwljmja-od.a.run.app/"  target="_blank">
             <img src="flask_dashboard.png" alt="drawing" width="800"/>
             https://dashboard-service-bohzwljmja-od.a.run.app
     </a>
 </p>
 
 Ressources :
-* <a href="https://cloud.google.com/sdk/docs?hl=fr">Google Cloud CLI Documenttion</a>
-* <a href="https://github.com/googleapis/google-cloud-python">Google Cloud Client Library for Python</a>
+* <a href="https://cloud.google.com/sdk/docs?hl=fr" target="_blank">Google Cloud CLI Documenttion</a>
+* <a href="https://github.com/googleapis/google-cloud-python" target="_blank">Google Cloud Client Library for Python</a>
 
 
 ## 1. GCP Project Creation and Configuration
