@@ -15,9 +15,12 @@ The goal of this project is to interconnect commonly used GCP services in data p
     </a>
 </p>
 
-Ressources :
-* <a href="https://cloud.google.com/sdk/docs?hl=fr" target="_blank">Google Cloud CLI Documenttion</a>
-* <a href="https://github.com/googleapis/google-cloud-python" target="_blank">Google Cloud Client Library for Python</a>
+
+### Ressources :
+
+* [Google Cloud CLI Documentation](https://cloud.google.com/sdk/docs?hl=fr)
+
+* [Google Cloud Python Client Library Documentation](https://googleapis.dev/python/google-api-core/latest/index.html)
 
 
 ## 1. GCP Project Creation and Configuration
