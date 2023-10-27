@@ -16,7 +16,7 @@ bq mk --table $dataset_name"."$raw_records_table_name json_list_schema_raw_data.
 bq mk --table $dataset_name"."$transformed_records_from_raw_table_name json_list_schema_records
 
 # load raw data from GCS bucket to BigQuery raw_records table
-bq load --source_format=NEWLINE_DELIMITED_JSON $dataset_name"."$raw_records_table_name gs://vlille_data_json/*.json json_list_schema_raw_data.json
+bq load --source_format=NEWLINE_DELIMITED_JSON $dataset_name"."$raw_records_table_name $raw_json_files_bucket"/*.json" json_list_schema_raw_data.json
 # taking almot 150 seconds for 2 months of data (august 25th to october 24th 2023)
 
 # run python job:
