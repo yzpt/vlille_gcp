@@ -3,9 +3,8 @@ from pyspark.sql.functions import col
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, ArrayType, FloatType, TimestampType
 import subprocess
 
-
 # Specify your source bucket name
-bucket_name = "vlille_data_json"
+bucket_name = "vlille_data_json_sample"
 
 # To prevent problems caused by ":" characters in file names, it is necessary to create a list of files along with their complete paths.
 # Function to list files in a bucket
@@ -32,6 +31,13 @@ print(len(file_paths), 'files, to insert', len(file_paths)*289, 'rows in bigquer
 # 91,549 files, translating to approximately 26,457,661 rows in BigQuery, 
 # represent around 2 months of data extraction:
 # 289 stations * 60 minutes * 24 hours * 60 days =~ 25 million rows.
+
+# Function to read JSON data in batches
+def read_json_data_in_batches(spark, file_paths, batch_size):
+    for i in range(0, len(file_paths), batch_size):
+        batch_files = file_paths[i:i+batch_size]
+        batch_data = spark.read.schema(json_schema).json(batch_files)
+        yield batch_data
 
 # Initialize Spark Session
 spark = SparkSession.builder \
@@ -73,30 +79,30 @@ json_schema = StructType([
     ])))
 ])
 
-# Read JSON data from Google Cloud Storage
-json_data = spark.read.schema(json_schema).json(file_paths)
+# Specify the batch size (416160 rows represent one day of data)
+batch_size = 1440 * 289
 
-# Flatten the nested JSON structure
-flattened_data = json_data.select(col("records.fields.nbvelosdispo").alias("nb_available_bikes"),
-                                  col("records.fields.nbplacesdispo").alias("nb_available_places"),
-                                  col("records.fields.libelle").alias("station_id"),
-                                  col("records.fields.etat").alias("operational_state"),
-                                  col("records.fields.etatconnexion").alias("connexion"),
-                                  col("records.fields.datemiseajour").alias("datemiseajour"),
-                                  col("records.record_timestamp").alias("record_timestamp"))
+# Read JSON data in batches and process
+for batch_data in read_json_data_in_batches(spark, file_paths, batch_size):
+    # Flatten the nested JSON structure
+    flattened_data = batch_data.select(col("records.fields.nbvelosdispo").alias("nb_available_bikes"),
+                                       col("records.fields.nbplacesdispo").alias("nb_available_places"),
+                                       col("records.fields.libelle").alias("station_id"),
+                                       col("records.fields.etat").alias("operational_state"),
+                                       col("records.fields.etatconnexion").alias("connexion"),
+                                       col("records.fields.datemiseajour").alias("datemiseajour"),
+                                       col("records.record_timestamp").alias("record_timestamp"))
 
-# Write data to BigQuery
-flattened_data.write \
-    .format("bigquery") \
-    .mode("overwrite") \
-    .option("temporaryGcsBucket", "dataproc_test_yzpt") \
-    .option("parentProject", "zapart-data-vlille") \
-    .option("table", "zapart-data-vlille.vlille_dataset.dataproc_test") \
-    .save()
+    # Write data to BigQuery
+    flattened_data.write \
+        .format("bigquery") \
+        .mode("overwrite") \
+        .option("temporaryGcsBucket", "dataproc_test_yzpt") \
+        .option("parentProject", "zapart-data-vlille") \
+        .option("table", "zapart-data-vlille.vlille_dataset.dataproc_test_2") \
+        .save()
 
-# duration : 20min @ 22k rows/s with single node n2-standard-8 (8 vCPUs, 32 Go RAM) cluster
-
-# Stop the Spark session with 
+# Stop the Spark session
 spark.stop()
 
-
+print("Data loaded into BigQuery successfully.")
