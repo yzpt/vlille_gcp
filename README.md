@@ -736,17 +736,17 @@ $container_name                 = "dashboard-container"
 $dashboard_service_name         = "dashboard-service"
 
 # modify the Dockerfile
-$dockerFilePath = $dashboard_app_folder + "\Dockerfile"
+# $dockerFilePath = $dashboard_app_folder + "\Dockerfile"
 
 # Read the content of the Dockerfile
-$content = Get-Content -Path $dockerFilePath
+# $content = Get-Content -Path $dockerFilePath
 
 # Replace the specified line with the new PROJECT_ID and dataset_name
-$newLine = 'CMD ["python3", "app.py", "' + $PROJECT_ID + '", "' + $DATASET_ID + '"]'
-$newContent = $content -replace 'CMD .*', $newLine
+# $newLine = 'CMD ["python3", "app.py", "' + $PROJECT_ID + '", "' + $DATASET_ID + '"]'
+# $newContent = $content -replace 'CMD .*', $newLine
 
 # Write the modified content back to the Dockerfile
-$newContent | Set-Content -Path $dockerFilePath
+# $newContent | Set-Content -Path $dockerFilePath
 
 # Build Docker image
 docker build -t $artifact_registry_location-docker.pkg.dev/$PROJECT_ID/$artifact_registry_repo_name/$container_name $dashboard_app_folder
