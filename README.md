@@ -722,8 +722,7 @@ RUN pip3 install -r requirements.txt
 EXPOSE 8080
 
 # Run your script when the container launches
-CMD ["python3", "app.py", "project_id", "dataset_name"]
-# args can be automaticaly modified by powershell CLI, see below
+CMD ["python3", "app.py"]
 ```
 
 * Build image :

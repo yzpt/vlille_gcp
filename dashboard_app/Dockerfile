@@ -13,4 +13,4 @@ RUN pip3 install -r requirements.txt
 EXPOSE 8080
 
 # Run your script when the container launches
-CMD ["python3", "app.py", "vlille-gcp", "vlille_gcp_dataset"]
+CMD ["python3", "app.py"]

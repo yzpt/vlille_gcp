@@ -10,7 +10,7 @@ project_id = "zapart-data-vlille"
 dataset_name = "vlille_dataset"
 
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "../key.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key.json"
 with open('GOOGLE_MAPS_API_KEY.txt', 'r') as f:
     GOOGLE_MAPS_API_KEY = f.read()
 
