@@ -6,15 +6,11 @@ import os
 import requests
 import sys
 
-try:
-    project_id = sys.argv[1]
-    dataset_name = sys.argv[2]
-except Exception as e:
-    print(e)
-    print("Usage: python3 create_tables.py <project_id> <dataset_name>")
-    sys.exit(1)
+project_id = "zapart-data-vlille"
+dataset_name = "vlille_dataset"
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key-" + project_id + ".json"
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "../key.json"
 with open('GOOGLE_MAPS_API_KEY.txt', 'r') as f:
     GOOGLE_MAPS_API_KEY = f.read()
 

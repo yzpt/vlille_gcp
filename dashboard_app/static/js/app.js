@@ -52,17 +52,20 @@ if (storedValue) {
     const selectedButton = document.querySelector(`[data-value="${storedValue}"]`);
     if (selectedButton) {
         selectedButton.classList.add('selected');
-    }
+    } else {
+		storedValue = 'today';
+	}
 }
 
 bq_loading_timeline_total_bikes.style.display = 'block';
-fetch('/get_timeline_sum/' + storedValue)
+// fetch('/get_timeline_sum/24' + storedValue)
+fetch('/get_timeline_sum/today')
 	.then(function(response) {
 		return response.json();
 	})
 	.then(function(jsonResponse) {
 		bq_loading_timeline_total_bikes.style.display = 'none';
-		displayTotalBikesTimeline(jsonResponse.labels, jsonResponse.values, storedValue);
+		displayTotalBikesTimeline(jsonResponse.labels, jsonResponse.values, 'today');
 	}
 );
 
