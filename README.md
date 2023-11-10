@@ -1,6 +1,6 @@
 # V'lille GCP
 
-I completed this project in order to learn how to use Google Cloud Platform's common data engineering services."
+I completed this project in order to learn how to use Google Cloud Platform's common data engineering services.
 
 Collecting data from the <a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom" target="_blank">V'lille API (Real-time station availability)</a>, storing and processing it on GCP: Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker.
 
