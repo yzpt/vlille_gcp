@@ -10,13 +10,30 @@ Collecting data from the <a href="https://opendata.lillemetropole.fr/explore/dat
 
 <p align="center">
     <a href="https://dashboard-service-bohzwljmja-od.a.run.app/"  target="_blank">
-            <img src="flask_dashboard.png" alt="drawing" width="800"/><br>
+            <img src="img/flask_dashboard.png" alt="drawing" width="800"/><br>
             https://dashboard-service-bohzwljmja-od.a.run.app
     </a>
 </p>
 
+- [V'lille GCP](#vlille-gcp)
+    - [Ressources](#ressources)
+  - [1. GCP Project Creation and Configuration](#1-gcp-project-creation-and-configuration)
+  - [2. Data Collection and Storage from API (Functions, Pub/Sub, Scheduler), BigQuery](#2-data-collection-and-storage-from-api-functions-pubsub-scheduler-bigquery)
+    - [2.1. Cloud Function : content and script transfert to GCS bucket](#21-cloud-function--content-and-script-transfert-to-gcs-bucket)
+    - [2.2. Pub/Sub Topic Creation:](#22-pubsub-topic-creation)
+    - [2.3. Job scheduler](#23-job-scheduler)
+    - [2.5. Cloud Functions Deployment:](#25-cloud-functions-deployment)
+  - [3. Flask dashboard (charts.js \& google maps) + Docker + Cloud Run](#3-flask-dashboard-chartsjs--google-maps--docker--cloud-run)
+    - [3.1. Flask](#31-flask)
+    - [3.2. Docker's container build \& push to GCP Artifact Registry](#32-dockers-container-build--push-to-gcp-artifact-registry)
+    - [3.3. Cloud Run deployment](#33-cloud-run-deployment)
+  - [4. Insert raw data in BigQuery table from json files on a GCS bucket](#4-insert-raw-data-in-bigquery-table-from-json-files-on-a-gcs-bucket)
+    - [4.1. Using BigQuery with CLI \& Python client](#41-using-bigquery-with-cli--python-client)
+    - [4.2.  Using Dataproc / PySpark](#42--using-dataproc--pyspark)
+      - [Compute Engine preprocessing : renaming a large number of files on a bucket with multi-processing](#compute-engine-preprocessing--renaming-a-large-number-of-files-on-a-bucket-with-multi-processing)
 
-### Ressources :
+
+### Ressources
 
 * [Google Cloud CLI Documentation](https://cloud.google.com/sdk/docs?hl=fr)
 
@@ -1133,7 +1150,7 @@ It's conveniant to use the JypertLab web interface to test & run the script on t
 <img src="./dataproc/jupyterlab_screen.PNG">
 
 
-#### 4.2.bis. Compute Engine preprocessing : renaming a large number of files on a bucket with multi-processing
+#### Compute Engine preprocessing : renaming a large number of files on a bucket with multi-processing
 
 I encountered difficulties reading JSON files due to the presence of colons ":" in the file names. I wrote ython multiprocessing script running on a horizontally scaling t2a-standard-8 compute engine VM to modify file names before processing with PySpark until I found a better solution: PySpark needs to read files based on a list containing the complete file paths. It was an opportunity to handle the gcloud Compute Engine service.
 
