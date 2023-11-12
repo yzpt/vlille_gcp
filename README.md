@@ -4,6 +4,8 @@ I completed this project in order to learn how to use Google Cloud Platform's co
 
 Collecting data from the <a href="https://opendata.lillemetropole.fr/explore/dataset/vlille-realtime/information/?flg=fr-fr&disjunctive.libelle&disjunctive.nom" target="_blank">V'lille API (Real-time station availability)</a>, storing and processing it on GCP: Storage, Dataproc, Functions, Pub/Sub, Scheduler, BigQuery, Run + Docker.
 
+<hr>
+
 <p align="center">
     <img src="./img/diagram_svg.svg" alt="drawing" width="800"/>
 </p>
