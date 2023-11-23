@@ -17,6 +17,8 @@ Collecting data from the <a href="https://opendata.lillemetropole.fr/explore/dat
     </a>
 </p>
 
+https://github.com/yzpt/vlille_gcp/assets/140260395/6215286a-23b0-461f-83af-bff182bceb1a
+
 - [V'lille GCP](#vlille-gcp)
     - [Ressources](#ressources)
   - [1. GCP Project Creation and Configuration](#1-gcp-project-creation-and-configuration)
