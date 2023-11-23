@@ -1256,9 +1256,7 @@ python3 multiproc_gsutil_mv.py gs://json_data_for_dataproc
 
 ## 5. Timemap visualisation with plotly
 
-See the notebooks of my timemap_vlille github repository :
-
-[timemap_vlille github repository](https://github.com/yzpt/timemap_vlille)
+See the notebooks of my [timemap_vlille github repository](https://github.com/yzpt/timemap_vlille)
 
 timemap_script.py :
 
