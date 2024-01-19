@@ -13,7 +13,7 @@ Collecting data from the <a href="https://opendata.lillemetropole.fr/explore/dat
 <p align="center">
     <a href="ttps://dashboard-service-dxpal7wuuq-od.a.run.app/"  target="_blank">
             <img src="img/flask_dashboard.png" alt="drawing" width="800"/><br>
-            ttps://dashboard-service-dxpal7wuuq-od.a.run.app/
+            https://dashboard-service-dxpal7wuuq-od.a.run.app/
     </a>
 </p>
 
